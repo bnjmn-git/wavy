@@ -1,0 +1,20 @@
+{
+	"bpm": 120,
+	"time_signature": [4, 4],
+	"ppb": 12,
+	"patterns": [
+		{
+			"name": "melody",
+			"pattern": [
+				{
+					"type": "sequential",
+					"start": ,
+					"data": [
+						"note": "C",
+						"duration": 12
+					]
+				}
+			]
+		}
+	]
+}

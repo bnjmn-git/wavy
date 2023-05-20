@@ -1,4 +1,6 @@
-set CURRENT_DIR = %0\..
-echo %0
+@echo offE
 
-"%CURRENT_DIR%\premake\premake5.exe %1"
+set CURRENT_DIR = %~dp0
+premake\premake5 %1
+
+msbuild build /p:configuration=%2 /p:platform=x64

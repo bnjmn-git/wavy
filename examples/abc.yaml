@@ -1,0 +1,7 @@
+bpm: 120
+time-signature: [4, 4]
+patterns:
+  - play:
+    note: C#4,
+    duration: 4
+  - move: 8
