@@ -1,7 +1,39 @@
 bpm: 120
 time-signature: [4, 4]
+
 patterns:
-  - play:
-    note: C#4,
-    duration: 4
-  - move: 8
+  - name: melody
+    commands: [
+      [play, C4, 4],
+      [delay, 4],
+      [play, D4, 4],
+      [delay, 4],
+      [play, E4, 4],
+      [delay, 4],
+      [play, F4, 4],
+      [delay, 4],
+      [play, G4, 4],
+      [delay, 4],
+      [play, A4, 4],
+      [delay, 4],
+      [play, B4, 4],
+      [delay, 4],
+      [play, C5, 4],
+      [delay, 4]
+    ]
+
+instruments:
+  - lead:
+    source: sine
+    adsr:
+      attack: 5
+      decay: 5
+      sustain: 0.8
+      release: 5
+
+tracks:
+  - name: track0
+    instrument: lead,
+    commands: [
+      [play, melody]
+    ]

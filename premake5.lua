@@ -7,6 +7,8 @@ workspace "Wavy"
 	location "build/"
 	targetdir "bin/%{cfg.buildcfg}"
 
+	defines { "_CRT_SECURE_NO_WARNINGS" }
+
 	project "Wavy"
 
 		files {
@@ -15,7 +17,6 @@ workspace "Wavy"
 		}
 
 		filter "configurations:debug*"
-			defines { "DEBUG" }
 			symbols "On"
 			optimize "Off"
 

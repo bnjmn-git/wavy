@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <math.h>
+#include <string_view>
+#include <optional>
 
 enum class Letter : uint8_t {
 	// C is the first variant as standard music notation has octaves
@@ -60,6 +62,13 @@ public:
 		auto offset_from_a4 = (double)(note_idx - detail::A4_NOTE_IDX);
 		return detail::A4_FREQ * exp2(offset_from_a4 / detail::NUM_NOTES);
 	}
+
+	/*
+	 * @brief Makes a note from a string.
+	 * @param str Must be in the format "Letter [Modifier] Octave". For example,
+	 * "C#4", "Ab1", "G3". The letter must be capitalized, and octaves no greater than 9.
+	*/
+	static std::optional<Note> from_str(std::string_view str);
 
 private:
 

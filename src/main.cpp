@@ -9,107 +9,38 @@
 #include "source_builder.h"
 #include "mixer.h"
 #include "note.h"
+#include "oscillators.h"
+#include "music.h"
 
 #include "concurrentqueue.h"
-
-double sine_wave(double phase) {
-	return sin(phase);
-}
-
-double saw_wave(double phase) {
-	return M_2_PI * atan(tan(phase * 0.5));
-}
-
-double square_wave(double phase) {
-	return sin(phase) < 0.0 ? -1.0 : 1.0;
-}
-
-double triangle_wave(double phase) {
-	return asin(sin(phase)) * M_2_PI;
-}
-
-double mod(double n, double d) {
-	n = fmod(n, d);
-	if (n < 0.0) {
-		n += d;
-	}
-
-	return n;
-}
-
-double saturate(double input) {
-	return tanh(input);
-}
 
 struct ConcurrentQueueTraits : public moodycamel::ConcurrentQueueDefaultTraits {
 	static constexpr size_t BLOCK_SIZE = 512;
 };
 
-class SineWave : public Source {
-public:
-
-	SineWave(double freq)
-		: _freq(freq)
-		, _phase(0.0)
-	{}
-
-	int sample_rate() const {
-		return 48000;
-	}
-
-	int channel_count() const {
-		return 1;
-	}
-
-	std::optional<double> next_sample() {
-		auto value = square_wave(_phase);
-		auto dt = 1.0 / sample_rate();
-		_phase += PI2 * _freq * dt;
-		_phase = fmod(_phase, PI2);
-
-		return value;
-	}
-
-private:
-
-	double _freq;
-	double _phase;
-	static constexpr double PI2 = M_PI * 2.0;
-};
-
-class SawWave : public Source {
-public:
-
-	SawWave(double freq)
-		: _freq(freq)
-		, _phase(0.0)
-	{}
-
-	int sample_rate() const {
-		return 48000;
-	}
-
-	int channel_count() const {
-		return 1;
-	}
-
-	std::optional<double> next_sample() {
-		auto value = saw_wave(_phase);
-		auto dt = 1.0 / sample_rate();
-		_phase += PI2 * _freq * dt;
-		_phase = fmod(_phase, PI2);
-
-		return value;
-	}
-
-private:
-
-	double _freq;
-	double _phase;
-	static constexpr double PI2 = M_PI * 2.0;
-};
+void log_error(char const* msg) {
+	fprintf(stderr, "[ERROR] %s\n", msg);
+}
 
 int main() {
+	auto res = Music::import("examples/abc.yaml");
+	if (auto e = std::get_if<MusicError>(&res)) {
+		if (auto e2 = std::get_if<MusicErrorParse>(e)) {
+			log_error(e2->msg.c_str());
+		} else if (auto e2 = std::get_if<MusicErrorFile>(e)) {
+			log_error(e2->msg.c_str());
+		}
+		return 1;
+	}
+
+	auto notea = Note::from_str("C#4");
+	auto noteb = Note::from_str("Ab9");
+	auto notec = Note::from_str("Ab9u");
+	auto noted = Note::from_str("Ab10");
+	auto notee = Note::from_str("A10");
+	auto notef = Note::from_str("A4");
+	auto noteg = Note::from_str("a4");
+
 	auto instance = audio::Instance();
 	auto device = *instance.get_default_output_device();
 	
@@ -130,59 +61,113 @@ int main() {
 	// due to an empty queue.
 	int empty_overlap_count = 0;
 
+	auto filter = [](double sample, FilterInfo info) {
+		auto max_samples = info.sample_rate * 3;
+		auto x = (double)info.current_sample / max_samples;
+		auto k = log(0.005);
+		auto fade_out = exp(k*x);
+		fade_out = std::max(0.0, std::min(1.0, fade_out));
+		return sample * fade_out * fade_out;
+	};
+
 	auto [mixer_, mixer_controller] = Mixer::create_mixer(2, 48000);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::Gsh, 2).freq()))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Ab, 2).freq()))
 		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::Esh, 3).freq()))
-		.duration(std::chrono::milliseconds(2800))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Eb, 3).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(200))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::G, 3).freq()))
-		.duration(std::chrono::milliseconds(2800))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 3).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(200))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::Ash, 3).freq()))
-		.duration(std::chrono::milliseconds(2600))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 3).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(400))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::C, 4).freq()))
-		.duration(std::chrono::milliseconds(2400))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::C, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(600))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::Dsh, 4).freq()))
-		.duration(std::chrono::milliseconds(2200))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Eb, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(800))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::Ash, 4).freq()))
-		.duration(std::chrono::milliseconds(2000))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(1000))
 		.build()
 	);
 	mixer_controller->add(
-		SourceBuilder(std::make_unique<SineWave>(Note(Letter::G, 4).freq()))
-		.duration(std::chrono::milliseconds(1800))
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
 		.delay(std::chrono::milliseconds(1200))
 		.build()
 	);
 
+	mixer_controller->add(
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 2).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
+		.delay(std::chrono::milliseconds(4000))
+		.build()
+	);
+	mixer_controller->add(
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 3).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
+		.delay(std::chrono::milliseconds(4000))
+		.build()
+	);
+	mixer_controller->add(
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 3).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
+		.delay(std::chrono::milliseconds(4000))
+		.build()
+	);
+	mixer_controller->add(
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::D, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
+		.delay(std::chrono::milliseconds(4000))
+		.build()
+	);
+	mixer_controller->add(
+		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::F, 4).freq()))
+		.duration(std::chrono::milliseconds(3000))
+		.filter(filter)
+		.delay(std::chrono::milliseconds(4000))
+		.build()
+	);
+
+
 	auto mixer = std::make_unique<Mixer>(std::move(mixer_));
 	auto output = SourceBuilder(std::move(mixer))
-		.amplify(0.2)
-		.buffered(4800)
+		.amplify(0.5)
+		.buffered(1200)
 		.build();
 
 	device.start([&](float* data, int channel_count, int sample_count) {
@@ -220,7 +205,9 @@ int main() {
 	uint64_t acc_time = 0;
 	int acc_samples = 0;
 
-	while (acc_samples < 48000*8) {
+	auto start = std::chrono::high_resolution_clock::now();
+
+	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < 10000) {
 		// time += dt;
 
 		for (int i = 0; i < channel_count; ++i) {
