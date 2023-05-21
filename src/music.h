@@ -208,7 +208,7 @@ public:
 	 * values. So 96 would divide a beat into 96 discrete values. This is useful to allow exact
 	 * placement of notes and avoid floating point comparisons, or to guarantee a sorted order.
 	*/
-	constexpr int get_resolution_per_beat() const { return 96; }
+	static constexpr int get_resolution_per_beat() { return 96; }
 	TimeSignature get_time_signature() const { return _time_signature; }
 	
 	Instruments::const_iterator iter_instruments() const {

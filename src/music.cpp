@@ -233,15 +233,40 @@ static void process_commands(
 	std::vector<PatternCommand> const& commands,
 	int resolution_per_beat,
 	int bpm,
+	TimeSignature time_signature,
 	Pattern& pattern
 ) {
+	double beat_value = time_signature.beat_value;
 
+	// elapsed resolution time.
+	double elapsed = 0.0;
+
+	bool is_repeating = false;
+	std::vector<PatternCommand> repeat_cache;
+	
+	for (auto& command : commands) {
+		if (auto c = std::get_if<CommandDelay>(&command)) {
+			double beats = beat_value / c->delay;
+			elapsed += beats * resolution_per_beat;
+		} else if (auto c = std::get_if<CommandPlay>(&command)) {
+			double beats = beat_value / c->duration;
+			double duration = beats * resolution_per_beat;
+			pattern.add_note(NoteEvent(
+				c->note,
+				(int)floor(elapsed),
+				(int)floor(elapsed + duration)
+			));
+		} else if (auto c = std::get_if<CommandRepeat>(&command)) {
+			
+		}
+	}
 }
 
 static auto parse_pattern(
 	ryml::ConstNodeRef node,
 	int resolution_per_beat,
-	int bpm
+	int bpm,
+	TimeSignature time_signature
 )
 	-> std::variant<Pattern, InternalError>
 {
@@ -279,7 +304,7 @@ static auto parse_pattern(
 		commands.push_back(std::get<0>(std::move(res)));
 	}
 
-	process_commands(commands, resolution_per_beat, bpm, pattern);
+	process_commands(commands, resolution_per_beat, bpm, time_signature, pattern);
 	
 	return pattern;
 }
@@ -287,7 +312,8 @@ static auto parse_pattern(
 static auto parse_patterns(
 	ryml::ConstNodeRef root,
 	int resolution_per_beat,
-	int bpm
+	int bpm,
+	TimeSignature time_signature
 )
 	-> std::variant<std::vector<Pattern>, InternalError>
 {
@@ -304,7 +330,7 @@ static auto parse_patterns(
 	std::vector<Pattern> patterns;
 	patterns.reserve(patterns_node.num_children());
 	for (auto pattern_node : patterns_node.children()) {
-		auto res = parse_pattern(pattern_node, resolution_per_beat, bpm);
+		auto res = parse_pattern(pattern_node, resolution_per_beat, bpm, time_signature);
 		if (auto err = std::get_if<1>(&res)) {
 			return std::move(*err);
 		}
@@ -375,7 +401,7 @@ std::variant<Music, MusicError> Music::import(std::string_view filename) {
 
 	std::vector<Pattern> patterns;
 	{
-		auto res = parse_patterns(root);
+		auto res = parse_patterns(root, get_resolution_per_beat(), bpm, time_signature);
 		if (auto ok = std::get_if<0>(&res)) {
 			patterns = std::move(*ok);
 		} else {
