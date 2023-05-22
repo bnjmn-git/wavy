@@ -168,9 +168,13 @@ namespace audio {
 
 			CoTaskMemFree(wave_format);
 
-			_channels = wave_format->nChannels;
-			_channel_mask = wave_format_ex.dwChannelMask;
+			// _channels = wave_format->nChannels;
+			_channels = 2;
+			// _channel_mask = wave_format_ex.dwChannelMask;
+			_channel_mask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 			assert(wave_format_ex.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
+			assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_LEFT);
+			assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_RIGHT);
 
 			_client_event = CreateEvent(nullptr, false, false, nullptr);
 		}
@@ -193,6 +197,10 @@ namespace audio {
 
 		std::vector<int> const& get_available_sample_rates() const override {
 			return _sample_rates;
+		}
+
+		int get_sample_rate() const override {
+			return _sample_rate;
 		}
 
 		uint32_t get_buffer_size() const override {

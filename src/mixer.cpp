@@ -1,9 +1,9 @@
 #include "mixer.h"
 #include "conversions.h"
 
-std::tuple<Mixer, std::shared_ptr<MixerController>> Mixer::create_mixer(int channels, int sample_rate) {
+std::tuple<std::unique_ptr<Mixer>, std::shared_ptr<MixerController>> Mixer::create_mixer(int channels, int sample_rate) {
 	auto controller = std::make_shared<MixerController>(channels, sample_rate);
-	auto mixer = Mixer(controller);
+	auto mixer = std::unique_ptr<Mixer>(new Mixer(controller));
 
 	return { std::move(mixer), std::move(controller) };
 }
@@ -49,7 +49,7 @@ std::optional<double> Mixer::next_sample() {
 
 	auto sum = _sum_current_sources();
 
-	if (_current_sources.empty()) {
+	if (_current_sources.empty() && !_input->_has_pending) {
 		return std::nullopt;
 	}
 

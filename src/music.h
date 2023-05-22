@@ -46,7 +46,7 @@ public:
 
 public:
 
-	Adsr(double a, double d, double s, double r)
+	constexpr Adsr(double a, double d, double s, double r)
 		: attack(a)
 		, decay(d)
 		, sustain(s)
@@ -59,7 +59,7 @@ public:
 	 * @param elapsed_release Optional elapsed seconds since release. If none, then release is not calculated.
 	 * @return The amplitude to multiply with a sample
 	*/
-	double evaluate(double elapsed_press, std::optional<double> elapsed_release) {
+	double evaluate(double elapsed_press, std::optional<double> elapsed_release) const {
 		// assert(elapsed >= 0.0);
 
 		double value = 0.0;
@@ -81,7 +81,7 @@ public:
 	}
 };
 
-enum InstrumentType {
+enum class InstrumentSourceType {
 	Sine,
 	Triangle,
 	Square,
@@ -91,7 +91,7 @@ enum InstrumentType {
 class Instrument {
 public:
 
-	Instrument(std::string name, InstrumentType type, Adsr adsr)
+	Instrument(std::string name, InstrumentSourceType type, Adsr adsr)
 		: _name(std::move(name))
 		, _type(type)
 		, _adsr(adsr)
@@ -101,7 +101,7 @@ public:
 		return _name;
 	}
 
-	InstrumentType type() const {
+	InstrumentSourceType type() const {
 		return _type;
 	}
 
@@ -112,7 +112,7 @@ public:
 private:
 
 	std::string _name;
-	InstrumentType _type;
+	InstrumentSourceType _type;
 	Adsr _adsr;
 };
 
@@ -132,6 +132,14 @@ public:
 		, start(start)
 		, end(end)
 	{}
+
+	NoteEvent move(int offset) const {
+		return NoteEvent(
+			note,
+			start + offset,
+			end + offset
+		);
+	}
 };
 
 class Pattern {
@@ -139,38 +147,72 @@ public:
 
 	Pattern(std::string name)
 		: _name(std::move(name))
-		, _notes()
-	{}
-
-	void add_note(NoteEvent note) {
-		_notes.push_back(note);
-	}
-
-private:
-
-	std::string _name;
-	std::vector<NoteEvent> _notes;
-	int _duration;	// In resolution time
-};
-
-class Track {
-public:
-
-	Track(std::string name)
-		: _name(name)
-		, _sequence()
+		, _events()
+		, _duration(0)
 	{}
 
 	std::string_view name() const {
 		return _name;
 	}
 
+	void add_note(NoteEvent note) {
+		_events.push_back(note);
+		_duration = std::max(_duration, note.end);
+	}
+
+	int duration() const { return _duration; }
+
+	std::vector<NoteEvent> const& events() const { return _events; }
+
 private:
 
 	std::string _name;
+	std::vector<NoteEvent> _events;
+	int _duration;	// In resolution time
+};
 
-	// Holds a sequence of pattern names.
-	std::vector<std::string_view> _sequence;
+class PatternEvent {
+public:
+
+	int start;
+	int end;
+	int pattern_idx;
+
+	PatternEvent(int pattern_idx, int start, int end)
+		: pattern_idx(pattern_idx)
+		, start(start)
+		, end(end)
+	{}
+};
+
+class Track {
+public:
+
+	Track(std::string name, int instrument_idx, double gain)
+		: _name(name)
+		, _instrument_idx(instrument_idx)
+		, _gain(gain)
+	{}
+
+	std::string_view name() const {
+		return _name;
+	}
+
+	int instrument_idx() const { return _instrument_idx; }
+	std::vector<PatternEvent> const& events() const { return _events; }
+
+	void add_pattern(PatternEvent pattern) {
+		_events.push_back(std::move(pattern));
+	}
+
+	double gain() const { return _gain; }
+
+private:
+
+	std::string _name;
+	int _instrument_idx;
+	double _gain;
+	std::vector<PatternEvent> _events;
 };
 
 namespace music {
@@ -196,8 +238,8 @@ namespace music {
 class Music {
 public:
 
-	using Instruments = std::unordered_map<std::string, Instrument>;
-	using Patterns = std::unordered_map<std::string, Pattern>;
+	// using Instruments = std::unordered_map<std::string, Instrument>;
+	// using Patterns = std::unordered_map<std::string, Pattern>;
 
 	static std::variant<Music, MusicError> import(std::string_view filename);
 
@@ -210,20 +252,16 @@ public:
 	*/
 	static constexpr int get_resolution_per_beat() { return 96; }
 	TimeSignature get_time_signature() const { return _time_signature; }
+
+	std::vector<Pattern> const& get_patterns() const { return _patterns; }
+	std::vector<Instrument> const& get_instruments() const { return _instruments; }
+	std::vector<Track> const& get_tracks() const { return _tracks; }
 	
-	Instruments::const_iterator iter_instruments() const {
-		return _instruments.cbegin();
-	}
-
-	Patterns::const_iterator iter_patterns() const {
-		return _patterns.cbegin();
-	}
-
 private:
 
 	int _bpm;
 	TimeSignature _time_signature;
-	Instruments _instruments;
-	Patterns _patterns;
-
+	std::vector<Instrument> _instruments;
+	std::vector<Pattern> _patterns;
+	std::vector<Track> _tracks;
 };

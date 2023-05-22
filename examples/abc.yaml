@@ -1,39 +1,110 @@
-bpm: 120
+bpm: 144
 time-signature: [4, 4]
 
 patterns:
   - name: melody
     commands: [
-      [play, C4, 4],
-      [delay, 4],
-      [play, D4, 4],
-      [delay, 4],
-      [play, E4, 4],
-      [delay, 4],
-      [play, F4, 4],
-      [delay, 4],
-      [play, G4, 4],
-      [delay, 4],
-      [play, A4, 4],
-      [delay, 4],
-      [play, B4, 4],
-      [delay, 4],
-      [play, C5, 4],
-      [delay, 4]
+      [play, A3, [3,8]],
+      [delay, [1,2]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,2]],
+      [delay, [1,2]],
+      [play, A3, [1,2]],
+      [delay, [1,2]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, A3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,2]],
+      [delay, [1,2]],
+      [play, E4, [1,2]],
+      [delay, [1,2]],
+
+      [delay, [1,2]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, A3, [1,4]],
+      [delay, [1,2]],
+      [play, F4, [1,4]],
+      [delay, [1,2]],
+      [play, E4, [1,4]],
+      [delay, [1,2]],
+      [play, D4, [1,4]],
+      [delay, [1,2]],
+      [play, C4, [1,4]],
+      [delay, [1,2]],
+      [play, B3, [1,4]],
+      [delay, [1,2]],
+    ]
+  - name: bass
+    commands: [
+      [repeat, 4],
+      [play, A1, [3,4]],
+      [play, A2, [3,4]],
+      [play, E3, [3,4]],
+      [delay, [3,4]],
+      [play, A1, [1,4]],
+      [play, A2, [1,4]],
+      [play, E3, [1,4]],
+      [delay, [1,4]],
+      [end-repeat],
+      [repeat, 2],
+      [play, E1, [3,4]],
+      [play, E2, [3,4]],
+      [play, B2, [3,4]],
+      [delay, [3,4]],
+      [play, E1, [1,4]],
+      [play, E2, [1,4]],
+      [play, B2, [1,4]],
+      [delay, [1,4]],
+      [end-repeat],
+      [repeat, 2],
+      [play, F1, [3,4]],
+      [play, F2, [3,4]],
+      [play, C3, [3,4]],
+      [delay, [3,4]],
+      [play, F1, [1,4]],
+      [play, F2, [1,4]],
+      [play, C3, [1,4]],
+      [delay, [1,4]],
+      [end-repeat]
     ]
 
 instruments:
-  - lead:
+  - name: lead
+    source: saw
+    adsr:
+      attack: 0.1
+      decay: 2.0
+      sustain: 0.1
+      release: 0.03
+  - name: bass
     source: sine
     adsr:
-      attack: 5
-      decay: 5
+      attack: 0.1
+      decay: 0.03
       sustain: 0.8
-      release: 5
+      release: 0.1
 
 tracks:
   - name: track0
-    instrument: lead,
+    instrument: lead
+    gain: 0.2
     commands: [
       [play, melody]
+    ]
+  - name: track1
+    instrument: bass
+    gain: 1.0
+    commands: [
+      [play, bass]
     ]

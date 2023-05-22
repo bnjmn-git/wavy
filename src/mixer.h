@@ -37,7 +37,7 @@ private:
 class Mixer : public Source {
 public:
 
-	static std::tuple<Mixer, std::shared_ptr<MixerController>> create_mixer(int channels, int sample_rate);
+	static std::tuple<std::unique_ptr<Mixer>, std::shared_ptr<MixerController>> create_mixer(int channels, int sample_rate);
 
 	int channel_count() const override;
 	int sample_rate() const override;

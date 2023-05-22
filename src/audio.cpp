@@ -29,6 +29,10 @@ namespace audio {
 		return _host->get_channel_count();
 	}
 
+	int Device::sample_rate() const {
+		return _host->get_sample_rate();
+	}
+
 	bool Device::open(int desired_sample_rate) {
 		return _host->open(desired_sample_rate);
 	}

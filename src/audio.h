@@ -31,6 +31,7 @@ namespace audio {
 		virtual std::string_view get_id() const = 0;
 		virtual uint32_t get_buffer_size() const = 0;
 		virtual std::vector<int> const& get_available_sample_rates() const = 0;
+		virtual int get_sample_rate() const = 0;
 		virtual int get_channel_count() const = 0;
 		virtual bool open(int desired_sample_rate) = 0;
 		virtual void close() = 0;
@@ -74,6 +75,7 @@ namespace audio {
 		std::string_view name() const;
 		std::string_view id() const;
 		std::vector<int> const& available_sample_rates() const;
+		int sample_rate() const;
 		uint32_t buffer_size() const;
 		int channel_count() const;
 		bool open(int desired_sample_rate);

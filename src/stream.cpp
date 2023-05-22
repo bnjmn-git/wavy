@@ -13,9 +13,13 @@ std::optional<OutputStream> OutputStream::try_default() {
 	auto sample_rates = device.available_sample_rates();
 
 	int desired_sample_rate = 44100;
-	std::lower_bound(sample_rates.begin(), sample_rates.end(), desired_sample_rate);
+	auto actual_sample_rate = std::lower_bound(sample_rates.begin(), sample_rates.end(), desired_sample_rate);
 
-	if (!device.open(desired_sample_rate)) {
+	if (actual_sample_rate == sample_rates.end()) {
+		return std::nullopt;
+	}
+
+	if (!device.open(*actual_sample_rate)) {
 		return {};
 	}
 

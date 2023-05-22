@@ -3,6 +3,7 @@
 #include <math.h>
 #include <thread>
 #include <fstream>
+#include <tuple>
 
 #include "audio.h"
 #include "source.h"
@@ -22,6 +23,62 @@ void log_error(char const* msg) {
 	fprintf(stderr, "[ERROR] %s\n", msg);
 }
 
+using SourcePtr = std::unique_ptr<Source>;
+
+static SourcePtr create_source_from_note_event(
+	NoteEvent const& event,
+	Instrument const& instrument,
+	double gain,
+	int resolution_per_beat,
+	int bpm
+) {
+	auto freq = event.note.freq();
+	auto adsr = instrument.adsr();
+
+	// Need to allow time for adsr release to have effect.
+	auto duration_seconds = music::map_resolution_to_seconds(event.end - event.start, resolution_per_beat, bpm) + adsr.release;
+	SourcePtr source;
+	switch (instrument.type()) {
+		default:
+		case InstrumentSourceType::Sine:
+			source = std::make_unique<SineWave>(freq);
+		break;
+		case InstrumentSourceType::Triangle:
+			source = std::make_unique<TriangleWave>(freq);
+		break;
+		case InstrumentSourceType::Square:
+			source = std::make_unique<SquareWave>(freq);
+		break;
+		case InstrumentSourceType::Saw:
+			source = std::make_unique<SawWave>(freq);
+		break;
+	}
+
+	source = SourceBuilder(std::move(source))
+		.duration(std::chrono::microseconds((int64_t)(duration_seconds * 1e6)))
+		.amplify(gain)
+		.filter([adsr](double sample, FilterInfo info) {
+			auto total_samples = *info.get_total_samples();
+			auto release_sample_start = total_samples - (int)(adsr.release * info.sample_rate);
+			
+			auto is_release = info.current_sample >= release_sample_start;
+			
+			double value;
+			if (is_release) {
+				auto elapsed_release = (double)(info.current_sample - release_sample_start) / info.sample_rate;
+				auto elapsed = (double)release_sample_start / info.sample_rate;
+				value = adsr.evaluate(elapsed, elapsed_release);
+			} else {
+				auto elapsed = (double)info.current_sample / info.sample_rate;
+				value = adsr.evaluate(elapsed, std::nullopt);
+			}
+			return sample * value;
+		})
+		.build();
+
+	return source;
+}
+
 int main() {
 	auto res = Music::import("examples/abc.yaml");
 	if (auto e = std::get_if<MusicError>(&res)) {
@@ -33,22 +90,54 @@ int main() {
 		return 1;
 	}
 
-	auto notea = Note::from_str("C#4");
-	auto noteb = Note::from_str("Ab9");
-	auto notec = Note::from_str("Ab9u");
-	auto noted = Note::from_str("Ab10");
-	auto notee = Note::from_str("A10");
-	auto notef = Note::from_str("A4");
-	auto noteg = Note::from_str("a4");
+	auto music = std::get<0>(std::move(res));
+	auto& tracks = music.get_tracks();
+	auto& instruments = music.get_instruments();
+	auto& patterns = music.get_patterns();
+	auto bpm = music.get_bpm();
+	auto time_signature = music.get_time_signature();
+
+	std::vector<std::tuple<int, SourcePtr>> sources;
+
+	for (auto& track : tracks) {
+		auto& instrument = instruments[track.instrument_idx()];
+		for (auto& track_event : track.events()) {
+			auto& pattern = patterns[track_event.pattern_idx];
+			for (auto& note_event : pattern.events()) {
+				auto moved_note_event = note_event.move(track_event.start);
+				sources.push_back(std::make_tuple(
+					moved_note_event.start,
+					create_source_from_note_event(
+						moved_note_event,
+						instrument,
+						track.gain(),
+						Music::get_resolution_per_beat(),
+						bpm
+					)
+				));
+			}
+		}
+	}
+
+	// Sort in descending order of starting resolution times.
+	std::sort(sources.begin(), sources.end(), [](auto& lhs, auto& rhs) {
+		return std::get<0>(lhs) > std::get<0>(rhs);
+	});
 
 	auto instance = audio::Instance();
 	auto device = *instance.get_default_output_device();
+
+	auto& sample_rates = device.available_sample_rates();
+	int sample_rate = 48000;
+	auto sample_rate_it = std::lower_bound(sample_rates.begin(), sample_rates.end(), sample_rate);
+	sample_rate = sample_rate_it == sample_rates.end() ? sample_rates.back() : *sample_rate_it;
 	
-	device.open(48000);
+	device.open(sample_rate);
 
 	auto buffer_size = device.buffer_size();
 	auto channel_count = device.channel_count();
 	auto frame_count = buffer_size*channel_count;
+	sample_rate = device.sample_rate();
 
 	// We give queue double the frame count to give the sending thread a margin
 	// to prevent the audio thread from dequeuing an empty queue.
@@ -61,119 +150,10 @@ int main() {
 	// due to an empty queue.
 	int empty_overlap_count = 0;
 
-	auto filter = [](double sample, FilterInfo info) {
-		auto max_samples = info.sample_rate * 3;
-		auto x = (double)info.current_sample / max_samples;
-		auto k = log(0.005);
-		auto fade_out = exp(k*x);
-		fade_out = std::max(0.0, std::min(1.0, fade_out));
-		return sample * fade_out * fade_out;
-	};
-
-	auto [mixer_, mixer_controller] = Mixer::create_mixer(2, 48000);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Ab, 2).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Eb, 3).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(200))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 3).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(200))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 3).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(400))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::C, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(600))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Eb, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(800))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(1000))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(1200))
-		.build()
-	);
-
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 2).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(4000))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::G, 3).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(4000))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::Bb, 3).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(4000))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::D, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(4000))
-		.build()
-	);
-	mixer_controller->add(
-		SourceBuilder(std::make_unique<PianoWave>(Note(Letter::F, 4).freq()))
-		.duration(std::chrono::milliseconds(3000))
-		.filter(filter)
-		.delay(std::chrono::milliseconds(4000))
-		.build()
-	);
-
-
-	auto mixer = std::make_unique<Mixer>(std::move(mixer_));
-	auto output = SourceBuilder(std::move(mixer))
-		.amplify(0.5)
-		.buffered(1200)
-		.build();
-
 	device.start([&](float* data, int channel_count, int sample_count) {
 		auto samples_remaining = channel_count * sample_count;
 
-		if (empty_overlap_count > 0) {
+		if (empty_overlap_count > 0 && empty_overlap_count <= samples_remaining) {
 			memset(data, 0, sizeof(float) * empty_overlap_count);
 			data += empty_overlap_count;
 			samples_remaining -= empty_overlap_count;
@@ -201,30 +181,48 @@ int main() {
 			samples_remaining -= count;
 		}
 	});
-	
-	uint64_t acc_time = 0;
-	int acc_samples = 0;
 
-	auto start = std::chrono::high_resolution_clock::now();
+	auto [mixer, mixer_controller] = Mixer::create_mixer(channel_count, sample_rate);
+	auto output = SourceBuilder(std::move(mixer)).amplify(0.1).build();
 
-	while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < 10000) {
-		// time += dt;
+	double time = 0.0;
+	double dt = 1.0 / (sample_rate * channel_count);
 
-		for (int i = 0; i < channel_count; ++i) {
-			auto start = std::chrono::high_resolution_clock::now();
-			auto value = output->next_sample().value_or(0.0);
-			value = tanh(value);
-			auto end = std::chrono::high_resolution_clock::now();
+	int64_t acc_nano = 0;
+	int64_t acc_count = 0;
 
-			acc_time += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-			acc_samples++;
-			while (!queue.try_enqueue((float)value));
+	while (true) {
+		auto start = std::chrono::high_resolution_clock::now();
+		auto sample_opt = output->next_sample();
+		auto end = std::chrono::high_resolution_clock::now();
+		acc_nano += (end - start).count();
+		acc_count += 1;
+
+		auto sample = 0.0;
+		if (sample_opt) {
+			sample = *sample_opt;
+			sample = tanh(sample);
+		} else {
+			if (sources.empty()) {
+				break;
+			}
 		}
-	}
 
+		while(!queue.try_enqueue((float)sample));
+
+		auto resolution_time = music::map_seconds_to_resolution(time, Music::get_resolution_per_beat(), bpm);
+		while (!sources.empty() && std::get<0>(sources.back()) <= resolution_time) {
+			auto source = std::get<1>(std::move(sources.back()));
+			sources.pop_back();
+			mixer_controller->add(std::move(source));
+		}
+
+		time += dt;
+	}
+	
 	device.close();
 
-	printf("%lf\n", (double)acc_time/acc_samples);
+	printf("%lf", (double)acc_nano/acc_count);
 
 	return 0;
 }
