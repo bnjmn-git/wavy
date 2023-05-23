@@ -52,6 +52,12 @@ static SourcePtr create_source_from_note_event(
 		case InstrumentSourceType::Saw:
 			source = std::make_unique<SawWave>(freq);
 		break;
+		case InstrumentSourceType::Piano:
+			source = std::make_unique<PianoWave>(freq);
+		break;
+		case InstrumentSourceType::Violin:
+			source = std::make_unique<ViolinWave>(freq);
+		break;
 	}
 
 	source = SourceBuilder(std::move(source))
@@ -79,8 +85,8 @@ static SourcePtr create_source_from_note_event(
 	return source;
 }
 
-int main() {
-	auto res = Music::import("examples/abc.yaml");
+int main(int argc, char** argv) {
+	auto res = Music::import(argv[1]);
 	if (auto e = std::get_if<MusicError>(&res)) {
 		if (auto e2 = std::get_if<MusicErrorParse>(e)) {
 			log_error(e2->msg.c_str());
@@ -91,6 +97,7 @@ int main() {
 	}
 
 	auto music = std::get<0>(std::move(res));
+	auto gain = music.get_gain();
 	auto& tracks = music.get_tracks();
 	auto& instruments = music.get_instruments();
 	auto& patterns = music.get_patterns();
@@ -183,7 +190,7 @@ int main() {
 	});
 
 	auto [mixer, mixer_controller] = Mixer::create_mixer(channel_count, sample_rate);
-	auto output = SourceBuilder(std::move(mixer)).amplify(0.1).build();
+	auto output = SourceBuilder(std::move(mixer)).amplify(gain).buffered(1024).build();
 
 	double time = 0.0;
 	double dt = 1.0 / (sample_rate * channel_count);

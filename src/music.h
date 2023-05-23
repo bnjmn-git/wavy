@@ -85,7 +85,9 @@ enum class InstrumentSourceType {
 	Sine,
 	Triangle,
 	Square,
-	Saw
+	Saw,
+	Piano,
+	Violin
 };
 
 class Instrument {
@@ -244,6 +246,7 @@ public:
 	static std::variant<Music, MusicError> import(std::string_view filename);
 
 	int get_bpm() const { return _bpm; }
+	double get_gain() const { return _gain; }
 
 	/*
 	 * @brief Gets the resolution of a beat. The resolution subdivides a single beat into discrete
@@ -260,6 +263,7 @@ public:
 private:
 
 	int _bpm;
+	double _gain;
 	TimeSignature _time_signature;
 	std::vector<Instrument> _instruments;
 	std::vector<Pattern> _patterns;

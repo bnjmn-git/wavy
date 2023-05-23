@@ -1,0 +1,45 @@
+bpm: 120
+time-signature: [3,4]
+gain: 1.0
+
+patterns:
+  - name: melody
+    commands: [
+      [play, G#3, [1,8]],
+      [delay, [1,8]],
+      [play, D#4, [1,8]],
+      [play, G4, [1,8]],
+      [delay, [1,8]],
+      [play, A#4, [1,8]],
+      [delay, [1,8]],
+      [play, C5, [1,8]],
+      [delay, [1,8]],
+      [play, D#5, [1,8]],
+      [delay, [1,8]],
+      [play, A#5, [1,8]],
+      [delay, [1,8]],
+      [play, G5, [6,4]],
+      [delay, [6,4]],
+      [play, G4, [6,4]],
+      [play, C5, [6,4]],
+      [play, D#5, [6,4]],
+      [play, F5, [6,4]],
+      [delay, [3,8]],
+    ]
+
+instruments:
+  - name: piano
+    source: triangle
+    adsr:
+      attack: 0.03
+      decay: 1.0
+      sustain: 0.0
+      release: 0.1
+
+tracks:
+  - name: track0
+    instrument: piano
+    gain: 1.0
+    commands: [
+      [play, melody]
+    ]

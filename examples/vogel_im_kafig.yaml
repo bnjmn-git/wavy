@@ -1,0 +1,297 @@
+bpm: 150
+time-signature: [4, 4]
+gain: 0.5
+
+patterns:
+  - name: melody
+    commands: [
+      [play, A3, [3,8]],
+      [delay, [1,2]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,2]],
+      [delay, [1,2]],
+      [play, A3, [1,2]],
+      [delay, [1,2]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, A3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,2]],
+      [delay, [1,2]],
+      [play, E4, [1,2]],
+      [delay, [1,2]],
+
+      [delay, [1,2]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, A3, [1,4]],
+      [delay, [1,2]],
+      [play, F4, [1,4]],
+      [delay, [1,2]],
+      [play, E4, [1,4]],
+      [delay, [1,2]],
+      [play, D4, [1,4]],
+      [delay, [1,2]],
+      [play, C4, [1,4]],
+      [delay, [1,2]],
+      [play, B3, [1,2]],
+      [delay, [1,2]],
+    ]
+  - name: melody2
+    commands: [
+      [play, A4, [3,8]],
+      [delay, [1,2]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,2]],
+      [delay, [1,2]],
+      [play, A4, [1,2]],
+      [delay, [1,2]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, A4, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,2]],
+      [delay, [1,2]],
+      [play, E5, [1,2]],
+      [delay, [1,2]],
+
+      [delay, [1,2]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, A4, [1,4]],
+      [delay, [1,2]],
+      [play, F5, [1,4]],
+      [delay, [1,2]],
+      [play, E5, [1,4]],
+      [delay, [1,2]],
+      [play, D5, [1,4]],
+      [delay, [1,2]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,8]],
+      [delay, [1,8]],
+      [play, C5, [1,8]],
+      [delay, [1,8]],
+      [play, B4, [1,2]],
+      [play, F4, [1,2]],
+      [play, D4, [1,2]],
+      [delay, [1,2]],
+    ]
+  - name: bass
+    commands: [
+      # A
+      [repeat, 4],
+      
+      [repeat, 3],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, A1, [1,16]],
+      [play, A2, [1,16]],
+      [play, E3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # E
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, E1, [3,32]],
+      [play, E2, [3,32]],
+      [play, B2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, E1, [1,16]],
+      [play, E2, [1,16]],
+      [play, B2, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, E1, [3,32]],
+      [play, E2, [3,32]],
+      [play, B2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # F
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, F1, [3,32]],
+      [play, F2, [3,32]],
+      [play, C3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, F1, [1,16]],
+      [play, F2, [1,16]],
+      [play, C3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, F1, [3,32]],
+      [play, F2, [3,32]],
+      [play, C3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+    ]
+  - name: high
+    commands: [
+      [delay, [1,8]],
+      [play, A5, [1,8]],
+      [delay, [1,8]],
+      [play, E5, [1,8]],
+      [delay, [1,8]],
+      [play, C5, [1,8]],
+      [delay, [1,8]],
+      [play, D5, [1,8]],
+      [play, E6, [1,4]],
+      [delay, [1,8]],
+      [play, C5, [1,8]],
+      [delay, [1,8]],
+      [play, E5, [1,8]],
+      [play, G#6, [1,4]],
+      [delay, [1,8]],
+      [play, G#5, [1,8]],
+      [delay, [1,8]],
+      [play, A6, [4,1]],
+      [repeat, 8],
+      [play, A5, [1,8]],
+      [delay, [1,8]],
+      [play, A5, [1,8]],
+      [delay, [1,8]],
+      [play, E5, [1,8]],
+      [delay, [2,8]],
+      [end-repeat]
+    ]
+  - name: chords
+    commands: [
+      [play, A3, [2,1]],
+      [repeat, 3],
+      [play, C4, [1, 1]],
+      [play, E4, [1, 1]],
+      [delay, [1, 1]],
+      [end-repeat],
+      [play, A3, [1,1]],
+      [play, C4, [1, 1]],
+      [play, D4, [1, 1]],
+      [delay, [1, 1]],
+      [play, E3, [7,4]],
+      [play, B3, [7,4]],
+      [play, E4, [7,4]],
+      [delay, [2, 1]],
+      [play, F3, [7,4]],
+      [play, C3, [7,4]],
+      [play, E4, [7,4]],
+      [delay, [2, 1]],
+    ]
+
+instruments:
+  - name: lead
+    source: triangle
+    adsr:
+      attack: 0.05
+      decay: 2.0
+      sustain: 0.0
+      release: 0.1
+  - name: violin
+    source: triangle
+    adsr:
+      attack: 0.05
+      decay: 5.0
+      sustain: 0.0
+      release: 0.1
+  - name: chords
+    source: square
+    adsr:
+      attack: 0.8
+      decay: 0.0
+      sustain: 1.0
+      release: 0.3
+  - name: lead2
+    source: saw
+    adsr:
+      attack: 0.1
+      decay: 0.5
+      sustain: 0.1
+      release: 0.03
+  - name: bass
+    source: triangle
+    adsr:
+      attack: 0.03
+      decay: 0.03
+      sustain: 0.8
+      release: 0.03
+
+tracks:
+  - name: track0
+    instrument: lead
+    gain: 0.6
+    commands: [
+      [play, melody]
+    ]
+  - name: track3
+    instrument: violin
+    gain: 0.2
+    commands: [
+      [delay, [3,1]],
+      [play, high]
+    ]
+  - name: track2
+    instrument: lead2
+    gain: 0.1
+    commands: [
+      [play, melody2]
+    ]
+  - name: track1
+    instrument: bass
+    gain: 0.3
+    commands: [
+      [play, bass]
+    ]
+  - name: track124
+    instrument: chords
+    gain: 0.1
+    commands: [
+      [play, chords]
+    ]

@@ -86,6 +86,24 @@ static auto parse_bpm(ryml::ConstNodeRef root)
 	}
 }
 
+static auto parse_gain(ryml::ConstNodeRef root)
+	-> std::variant<std::optional<double>, InternalError>
+{
+	constexpr c4::csubstr GAIN_PROP_NAME("gain");
+	if (root.has_child(GAIN_PROP_NAME)) {
+		auto node = root[GAIN_PROP_NAME];
+		if (!node.is_keyval() || !node.val().is_real()) {
+			return InternalErrorOther{};
+		}
+
+		double gain;
+		node >> gain;
+		return gain;
+	} else {
+		return std::nullopt;
+	}
+}
+
 struct Duration {
 	int count;	// The number of dividends.
 	int dividend;	// Duration of the note (quarter note = 4, eigth = 8)
@@ -522,6 +540,10 @@ static auto parse_instrument(
 		source_type = InstrumentSourceType::Square;
 	} else if (csubstr_compare(source_node_ss, "saw") == 0) {
 		source_type = InstrumentSourceType::Saw;
+	} else if (csubstr_compare(source_node_ss, "piano") == 0) {
+		source_type = InstrumentSourceType::Piano;
+	} else if (csubstr_compare(source_node_ss, "violin") == 0) {
+		source_type = InstrumentSourceType::Violin;
 	} else {
 		return InternalErrorOther{};
 	}
@@ -886,6 +908,16 @@ std::variant<Music, MusicError> Music::import(std::string_view filename) {
 		}
 	}
 
+	double gain;
+	{
+		auto res = parse_gain(root);
+		if (auto ok = std::get_if<0>(&res)) {
+			gain = ok->value_or(1.0);
+		} else {
+			return map_internal_to_music_error(std::get<1>(std::move(res)));
+		}
+	}
+
 	std::vector<Pattern> patterns;
 	{
 		auto res = parse_patterns(root, get_resolution_per_beat(), bpm, time_signature);
@@ -919,6 +951,7 @@ std::variant<Music, MusicError> Music::import(std::string_view filename) {
 	Music music;
 	music._time_signature = time_signature;
 	music._bpm = bpm;
+	music._gain = gain;
 	music._patterns = std::move(patterns);
 	music._instruments = std::move(instruments);
 	music._tracks = std::move(tracks);

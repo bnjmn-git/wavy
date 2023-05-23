@@ -25,6 +25,10 @@ public:
 	}
 
 	std::optional<double> next_sample() override {
+		if (_buffer_idx >= _buffer.size()) {
+			_advance_buffer();
+		}
+		
 		if (_buffer.empty()) {
 			return std::nullopt;
 		}
@@ -32,10 +36,6 @@ public:
 		auto sample = _buffer[_buffer_idx];
 
 		_buffer_idx += 1;
-
-		if (_buffer_idx >= _buffer.size()) {
-			_advance_buffer();
-		}
 
 		return sample;
 	}
