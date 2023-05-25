@@ -1,9 +1,9 @@
-bpm: 150
+bpm: 140
 time-signature: [4, 4]
 gain: 0.5
 
 patterns:
-  - name: melody
+  - name: melody-a
     commands: [
       [play, A3, [3,8]],
       [delay, [1,2]],
@@ -33,20 +33,45 @@ patterns:
       [delay, [1,4]],
       [play, E4, [1,4]],
       [delay, [1,4]],
-      [play, A3, [1,4]],
+      [play, A3, [1,2]],
       [delay, [1,2]],
-      [play, F4, [1,4]],
+      [play, F4, [1,2]],
       [delay, [1,2]],
-      [play, E4, [1,4]],
+      [play, E4, [1,2]],
       [delay, [1,2]],
-      [play, D4, [1,4]],
+      [play, D4, [1,2]],
       [delay, [1,2]],
-      [play, C4, [1,4]],
+      [play, C4, [1,2]],
       [delay, [1,2]],
       [play, B3, [1,2]],
       [delay, [1,2]],
+      [delay, [1,2]],
+      [play, D4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,2]],
+      [play, F4, [1,4]],
+      [delay, [1,2]],
+      [play, F4, [1,2]],
+      [delay, [1,2]],
+      [play, E4, [1,2]],
+      [delay, [1,2]],
+      [play, D4, [1,2]],
+      [delay, [1,2]],
+      [play, E4, [1,2]],
+      [delay, [1,2]],
+      [play, G4, [3,2]],
+      [delay, [3,2]],
+      [play, F4, [1,4]],
+      [delay, [1,2]],
+      [play, E4, [1,1]],
+      [delay, [1,1]],
+      [play, D4, [1,1]],
+      [delay, [1,1]],
     ]
-  - name: melody2
+  - name: melody-a-high
     commands: [
       [play, A4, [3,8]],
       [delay, [1,2]],
@@ -76,26 +101,45 @@ patterns:
       [delay, [1,4]],
       [play, E5, [1,4]],
       [delay, [1,4]],
-      [play, A4, [1,4]],
+      [play, A4, [1,2]],
+      [delay, [1,2]],
+      [play, F5, [1,2]],
+      [delay, [1,2]],
+      [play, E5, [1,2]],
+      [delay, [1,2]],
+      [play, D5, [1,2]],
+      [delay, [1,2]],
+      [play, C5, [1,2]],
+      [delay, [1,2]],
+      [play, B4, [1,2]],
+      [delay, [1,2]],
+      [delay, [1,2]],
+      [play, D5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,4]],
+      [delay, [1,4]],
+      [play, E5, [1,4]],
       [delay, [1,2]],
       [play, F5, [1,4]],
       [delay, [1,2]],
-      [play, E5, [1,4]],
+      [play, F5, [1,2]],
       [delay, [1,2]],
-      [play, D5, [1,4]],
+      [play, E5, [1,2]],
       [delay, [1,2]],
-      [play, C5, [1,4]],
-      [delay, [1,4]],
-      [play, D5, [1,8]],
-      [delay, [1,8]],
-      [play, C5, [1,8]],
-      [delay, [1,8]],
-      [play, B4, [1,2]],
-      [play, F4, [1,2]],
-      [play, D4, [1,2]],
+      [play, D5, [1,2]],
       [delay, [1,2]],
+      [play, E5, [1,2]],
+      [delay, [1,2]],
+      [play, G5, [3,2]],
+      [delay, [3,2]],
+      [play, F5, [1,4]],
+      [delay, [1,2]],
+      [play, E5, [1,1]],
+      [delay, [1,1]],
+      [play, D5, [1,1]],
+      [delay, [1,1]],
     ]
-  - name: bass
+  - name: bass-a
     commands: [
       # A
       [repeat, 4],
@@ -174,39 +218,171 @@ patterns:
       [end-repeat],
 
       [end-repeat],
+
+      # G
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, G1, [3,32]],
+      [play, G2, [3,32]],
+      [play, D3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, G1, [1,16]],
+      [play, G2, [1,16]],
+      [play, D3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, G1, [3,32]],
+      [play, G2, [3,32]],
+      [play, D3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # C
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, C2, [3,32]],
+      [play, C3, [3,32]],
+      [play, G3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, C2, [1,16]],
+      [play, C3, [1,16]],
+      [play, G3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, C2, [3,32]],
+      [play, C3, [3,32]],
+      [play, G3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # B
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, B1, [3,32]],
+      [play, B2, [3,32]],
+      [play, F3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, B1, [1,16]],
+      [play, B2, [1,16]],
+      [play, F3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, B1, [3,32]],
+      [play, B2, [3,32]],
+      [play, F3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # E
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, D2, [3,32]],
+      [play, D3, [3,32]],
+      [play, A3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, D2, [1,16]],
+      [play, D3, [1,16]],
+      [play, A3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, D2, [3,32]],
+      [play, D3, [3,32]],
+      [play, A3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # F
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, E1, [3,32]],
+      [play, E2, [3,32]],
+      [play, B2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, E1, [1,16]],
+      [play, E2, [1,16]],
+      [play, B2, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, E1, [4,32]],
+      [play, E2, [4,32]],
+      [play, B2, [4,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
     ]
   - name: high
     commands: [
       [delay, [1,8]],
-      [play, A5, [1,8]],
+      [play, G5, [1,8]],
+      [delay, [1,8]],
+      [play, F5, [1,8]],
       [delay, [1,8]],
       [play, E5, [1,8]],
-      [delay, [1,8]],
-      [play, C5, [1,8]],
       [delay, [1,8]],
       [play, D5, [1,8]],
-      [play, E6, [1,4]],
-      [delay, [1,8]],
-      [play, C5, [1,8]],
+      [play, B4, [1,8]],
       [delay, [1,8]],
       [play, E5, [1,8]],
-      [play, G#6, [1,4]],
+      [delay, [1,8]],
+      [play, D5, [1,8]],
+      [play, F5, [1,8]],
       [delay, [1,8]],
       [play, G#5, [1,8]],
       [delay, [1,8]],
-      [play, A6, [4,1]],
+      
       [repeat, 8],
-      [play, A5, [1,8]],
+      [play, A5, [3,32]],
       [delay, [1,8]],
-      [play, A5, [1,8]],
+      [play, A5, [3,32]],
       [delay, [1,8]],
-      [play, E5, [1,8]],
-      [delay, [2,8]],
+      [play, E5, [3,32]],
+      [delay, [1,8]],
+      [play, E5, [3,32]],
+      [delay, [1,8]],
       [end-repeat]
     ]
   - name: chords
     commands: [
-      [play, A3, [2,1]],
+      [play, A3, [3,1]],
       [repeat, 3],
       [play, C4, [1, 1]],
       [play, E4, [1, 1]],
@@ -216,35 +392,548 @@ patterns:
       [play, C4, [1, 1]],
       [play, D4, [1, 1]],
       [delay, [1, 1]],
-      [play, E3, [7,4]],
-      [play, B3, [7,4]],
-      [play, E4, [7,4]],
+      [play, E3, [8,4]],
+      [play, B3, [8,4]],
+      [play, E4, [8,4]],
       [delay, [2, 1]],
-      [play, F3, [7,4]],
-      [play, C3, [7,4]],
-      [play, E4, [7,4]],
+      [play, F3, [8,4]],
+      [play, C3, [8,4]],
+      [play, E4, [8,4]],
       [delay, [2, 1]],
+      [play, G3, [8,4]],
+      [play, D3, [8,4]],
+      [play, E4, [8,4]],
+      [delay, [2, 1]],
+      [play, C4, [8,4]],
+      [play, E4, [8,4]],
+      [play, G4, [8,4]],
+      [delay, [2, 1]],
+      [play, B3, [8,4]],
+      [play, F4, [8,4]],
+      [play, A4, [8,4]],
+      [delay, [2, 1]],
+      [play, D3, [4,4]],
+      [play, F4, [4,4]],
+      [play, A4, [4,4]],
+      [delay, [1, 1]],
+      [play, E3, [4,4]],
+      [play, G4, [4,4]],
+      [play, B4, [4,4]],
+      [delay, [1, 1]],
+    ]
+  - name: drum-pattern
+    commands: [
+      [play, A4, [16,4]],
+      [delay, [16,4]]
+    ]
+  - name: ooh
+    commands: [
+      [play, E6, [1,1]],
+      [delay, [1,1]],
+      [play, D6, [1,1]],
+      [delay, [1,1]],
+      [play, B5, [1,1]],
+      [delay, [1,1]],
+      [play, A5, [2,1]],
+      [delay, [2,1]],
+      [delay, [2,1]],
+      [delay, [1,4]],
+      [play, A5, [1,4]],
+      [delay, [1,4]],
+      [play, B5, [1,4]],
+      [delay, [1,4]],
+      [play, C6, [2,4]],
+      [delay, [2,4]],
+      [play, A5, [1,4]],
+      [delay, [1,4]],
+      [play, D6, [1,4]],
+      [delay, [1,4]],
+      [play, G5, [4,4]],
+      [delay, [4,4]],
+      [play, E5, [5,4]],
+      [delay, [5,4]],
+      [play, G6, [6,4]],
+      [delay, [6,4]],
+      [play, F6, [2,4]],
+      [delay, [2,4]],
+      [play, E6, [2,2]],
+      [delay, [2,2]],
+      [play, D6, [2,2]],
+      [delay, [2,2]],
+    ]
+  - name: melody-b
+    commands: [
+      [delay, [1,4]],
+      [play, E3, [1,4]],
+      [delay, [1,4]],
+      [play, A3, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, G4, [2,4]],
+      [delay, [2,4]],
+      [play, F4, [2,4]],
+      [delay, [2,4]],
+      [play, F4, [4,4]],
+      [delay, [4,4]],
+
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, C4, [1,4]],
+      [delay, [1,4]],
+      [play, D4, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [2,4]],
+      [delay, [2,4]],
+      [play, C4, [2,4]],
+      [delay, [2,4]],
+      [play, D4, [2,4]],
+      [delay, [2,4]],
+      [play, E4, [2,4]],
+      [delay, [2,4]],
+
+      [play, A4, [4,4]],
+      [delay, [4,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, D#4, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, G#4, [1,4]],
+      [delay, [1,4]],
+      [play, A4, [4,4]],
+      [delay, [4,4]],
+
+      [play, E4, [2,4]],
+      [delay, [2,4]],
+      [play, G4, [1,4]],
+      [delay, [1,4]],
+      [play, F4, [1,4]],
+      [delay, [1,4]],
+      [play, E4, [2,4]],
+      [delay, [2,4]],
+      [play, D4, [2,4]],
+      [delay, [2,4]],
+      [play, C4, [2,4]],
+      [delay, [2,4]],
+      [play, D4, [2,4]],
+      [delay, [2,4]],
+      [play, E4, [8,4]],
+      [delay, [8,4]],
+    ]
+  - name: melody-b-high
+    commands: [
+      [delay, [1,4]],
+      [play, E4, [1,4]],
+      [delay, [1,4]],
+      [play, A4, [1,4]],
+      [delay, [1,4]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,4]],
+      [delay, [1,4]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, G5, [2,4]],
+      [delay, [2,4]],
+      [play, F5, [2,4]],
+      [delay, [2,4]],
+      [play, F5, [4,4]],
+      [delay, [4,4]],
+
+      [delay, [1,4]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,4]],
+      [delay, [1,4]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, C5, [1,4]],
+      [delay, [1,4]],
+      [play, D5, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [1,4]],
+      [delay, [1,4]],
+      [play, B4, [2,4]],
+      [delay, [2,4]],
+      [play, C5, [2,4]],
+      [delay, [2,4]],
+      [play, D5, [2,4]],
+      [delay, [2,4]],
+      [play, E5, [2,4]],
+      [delay, [2,4]],
+
+      [play, A5, [4,4]],
+      [delay, [4,4]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, D#5, [1,4]],
+      [delay, [1,4]],
+      [play, E5, [1,4]],
+      [delay, [1,4]],
+      [play, G#5, [1,4]],
+      [delay, [1,4]],
+      [play, A5, [4,4]],
+      [delay, [4,4]],
+
+      [play, E5, [2,4]],
+      [delay, [2,4]],
+      [play, G5, [1,4]],
+      [delay, [1,4]],
+      [play, F5, [1,4]],
+      [delay, [1,4]],
+      [play, E5, [2,4]],
+      [delay, [2,4]],
+      [play, D5, [2,4]],
+      [delay, [2,4]],
+      [play, C5, [2,4]],
+      [delay, [2,4]],
+      [play, D5, [2,4]],
+      [delay, [2,4]],
+      [play, E5, [8,4]],
+      [delay, [8,4]],
+    ]
+  - name: bass-b
+    commands: [
+      # A
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, A1, [1,16]],
+      [play, A2, [1,16]],
+      [play, E3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # D
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, D1, [3,32]],
+      [play, D2, [3,32]],
+      [play, A2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, D1, [1,16]],
+      [play, D2, [1,16]],
+      [play, A2, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, D1, [3,32]],
+      [play, D2, [3,32]],
+      [play, A2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # E
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, E1, [3,32]],
+      [play, E2, [3,32]],
+      [play, B2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, E1, [1,16]],
+      [play, E2, [1,16]],
+      [play, B2, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, E1, [3,32]],
+      [play, E2, [3,32]],
+      [play, B2, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # F
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, F1, [3,32]],
+      [play, F2, [3,32]],
+      [play, C3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, F1, [1,16]],
+      [play, F2, [1,16]],
+      [play, C3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, F1, [3,32]],
+      [play, F2, [3,32]],
+      [play, C3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # G
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, G1, [3,32]],
+      [play, G2, [3,32]],
+      [play, D3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, G1, [1,16]],
+      [play, G2, [1,16]],
+      [play, D3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, G1, [3,32]],
+      [play, G2, [3,32]],
+      [play, D3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+
+      # A
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, A1, [1,16]],
+      [play, A2, [1,16]],
+      [play, E3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, A1, [3,32]],
+      [play, A2, [3,32]],
+      [play, E3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # D
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, D2, [3,32]],
+      [play, D3, [3,32]],
+      [play, A3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, D2, [1,16]],
+      [play, D3, [1,16]],
+      [play, A3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, D2, [3,32]],
+      [play, D3, [3,32]],
+      [play, A3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # B
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, B1, [3,32]],
+      [play, B2, [3,32]],
+      [play, F3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, B1, [1,16]],
+      [play, B2, [1,16]],
+      [play, F3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, B1, [3,32]],
+      [play, B2, [3,32]],
+      [play, F3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # E
+      [repeat, 1],
+      
+      [repeat, 3],
+      [play, E2, [3,32]],
+      [play, E3, [3,32]],
+      [play, B3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, E2, [1,16]],
+      [play, E3, [1,16]],
+      [play, B3, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, E2, [3,32]],
+      [play, E3, [3,32]],
+      [play, B3, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+      
+      # E
+      [repeat, 2],
+      
+      [repeat, 3],
+      [play, F2, [3,32]],
+      [play, F3, [3,32]],
+      [play, C4, [3,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [repeat, 2],
+      [play, F2, [1,16]],
+      [play, F3, [1,16]],
+      [play, C4, [1,16]],
+      [delay, [1,16]],
+      [end-repeat],
+      
+      [repeat, 4],
+      [play, F2, [4,32]],
+      [play, F3, [4,32]],
+      [play, C4, [4,32]],
+      [delay, [1,8]],
+      [end-repeat],
+
+      [end-repeat],
+    ]
+  - name: s
+    commands: [
+      [delay, [1,4]],
+      [play, A3, [1,8]],
+      [delay, [1,8]],
+      [play, A3, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
+      [delay, [1,8]],
+      [delay, [1,4]],
+      [play, A3, [1,8]],
+      [delay, [1,8]],
+      [play, A3, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, A3, [1,8]],
+      [delay, [1,8]],
+      [play, A3, [1,8]],
     ]
 
 instruments:
   - name: lead
-    source: triangle
+    source: square
     adsr:
-      attack: 0.05
-      decay: 2.0
-      sustain: 0.0
-      release: 0.1
+      attack: 0.1
+      decay: 1.5
+      sustain: 0.02
+      release: 0.3
   - name: violin
-    source: triangle
+    source: violin
     adsr:
       attack: 0.05
       decay: 5.0
       sustain: 0.0
       release: 0.1
   - name: chords
-    source: square
+    source: saw
     adsr:
       attack: 0.8
+      decay: 0.0
+      sustain: 1.0
+      release: 0.3
+  - name: ooh
+    source: violin
+    adsr:
+      attack: 0.2
       decay: 0.0
       sustain: 1.0
       release: 0.3
@@ -256,42 +945,86 @@ instruments:
       sustain: 0.1
       release: 0.03
   - name: bass
-    source: triangle
+    source: sine
     adsr:
       attack: 0.03
       decay: 0.03
-      sustain: 0.8
+      sustain: 1.0
       release: 0.03
+  - name: drum-loop
+    source:
+      sample: "./punchy_drums_140.wav"
+  - name: orchestral-loop
+    source:
+      sample: "./orchestral_drums_140.wav"
 
 tracks:
   - name: track0
     instrument: lead
-    gain: 0.6
+    gain: 0.12
     commands: [
-      [play, melody]
+      [play, melody-b],
+      [play, melody-a],
+      [play, melody-b],
+    ]
+  - name: track2
+    instrument: lead
+    gain: 0.12
+    commands: [
+      [play, melody-b-high],
+      [play, melody-a-high],
+      [play, melody-b-high],
     ]
   - name: track3
     instrument: violin
-    gain: 0.2
+    gain: 0.09
     commands: [
-      [delay, [3,1]],
-      [play, high]
-    ]
-  - name: track2
-    instrument: lead2
-    gain: 0.1
-    commands: [
-      [play, melody2]
+      [delay, [16, 1]],
+      [delay, [3, 1]],
+      [play, high],
+      [delay, [8,1]],
+      [repeat, 4],
+      [play, s],
+      [end-repeat]
     ]
   - name: track1
     instrument: bass
-    gain: 0.3
+    gain: 0.25
     commands: [
-      [play, bass]
+      [play, bass-b],
+      [play, bass-a],
     ]
   - name: track124
     instrument: chords
+    gain: 0.15
+    commands: [
+      # [repeat, 2],
+      [delay, [16,1]],
+      [play, chords],
+      # [end-repeat]
+    ]
+  - name: ooh
+    instrument: ooh
     gain: 0.1
     commands: [
-      [play, chords]
+      [delay, [17,1]],
+      [play, ooh],
+    ]
+  - name: drums
+    instrument: drum-loop
+    gain: 0.6
+    commands: [
+      [delay, [16,1]],
+      [repeat, 5],
+      [play, drum-pattern],
+      [end-repeat]
+    ]
+  - name: orchestra
+    instrument: orchestral-loop
+    gain: 0.6
+    commands: [
+      [delay, [32,4]],
+      [repeat, 7],
+      [play, drum-pattern],
+      [end-repeat],
     ]

@@ -81,7 +81,7 @@ public:
 	}
 };
 
-enum class InstrumentSourceType {
+enum class InstrumentSourceWave {
 	Sine,
 	Triangle,
 	Square,
@@ -90,12 +90,21 @@ enum class InstrumentSourceType {
 	Violin
 };
 
+struct InstrumentSourceSample {
+	std::string filename;
+};
+
+using InstrumentSource = std::variant<
+	InstrumentSourceWave,
+	InstrumentSourceSample
+>;
+
 class Instrument {
 public:
 
-	Instrument(std::string name, InstrumentSourceType type, Adsr adsr)
+	Instrument(std::string name, InstrumentSource source, Adsr adsr)
 		: _name(std::move(name))
-		, _type(type)
+		, _source(std::move(source))
 		, _adsr(adsr)
 	{}
 
@@ -103,8 +112,8 @@ public:
 		return _name;
 	}
 
-	InstrumentSourceType type() const {
-		return _type;
+	InstrumentSource const& source() const {
+		return _source;
 	}
 
 	Adsr adsr() const {
@@ -114,7 +123,7 @@ public:
 private:
 
 	std::string _name;
-	InstrumentSourceType _type;
+	InstrumentSource _source;
 	Adsr _adsr;
 };
 

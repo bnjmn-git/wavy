@@ -5,21 +5,22 @@ gain: 1.0
 patterns:
   - name: melody
     commands: [
-      [play, G#3, [1,8]],
+      [play, G#3, [10,8]],
       [delay, [1,8]],
-      [play, D#4, [1,8]],
-      [play, G4, [1,8]],
+      [play, D#4, [9,8]],
+      [play, G4, [9,8]],
       [delay, [1,8]],
-      [play, A#4, [1,8]],
+      [play, A#4, [8,8]],
       [delay, [1,8]],
-      [play, C5, [1,8]],
+      [play, C5, [7,8]],
       [delay, [1,8]],
-      [play, D#5, [1,8]],
+      [play, D#5, [6,8]],
       [delay, [1,8]],
-      [play, A#5, [1,8]],
+      [play, A#5, [5,8]],
       [delay, [1,8]],
       [play, G5, [6,4]],
       [delay, [6,4]],
+      [play, G3, [6,4]],
       [play, G4, [6,4]],
       [play, C5, [6,4]],
       [play, D#5, [6,4]],
@@ -29,17 +30,17 @@ patterns:
 
 instruments:
   - name: piano
-    source: triangle
+    source: sine
     adsr:
       attack: 0.03
-      decay: 1.0
+      decay: 2.0
       sustain: 0.0
-      release: 0.1
+      release: 0.5
 
 tracks:
   - name: track0
     instrument: piano
-    gain: 1.0
+    gain: 0.2
     commands: [
       [play, melody]
     ]

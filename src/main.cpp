@@ -4,6 +4,7 @@
 #include <thread>
 #include <fstream>
 #include <tuple>
+#include <filesystem>
 
 #include "audio.h"
 #include "source.h"
@@ -12,6 +13,7 @@
 #include "note.h"
 #include "oscillators.h"
 #include "music.h"
+#include "wave_importer.h"
 
 #include "concurrentqueue.h"
 
@@ -25,12 +27,13 @@ void log_error(char const* msg) {
 
 using SourcePtr = std::unique_ptr<Source>;
 
-static SourcePtr create_source_from_note_event(
+static std::optional<SourcePtr> create_source_from_note_event(
 	NoteEvent const& event,
 	Instrument const& instrument,
 	double gain,
 	int resolution_per_beat,
-	int bpm
+	int bpm,
+	std::filesystem::path const& music_base_path
 ) {
 	auto freq = event.note.freq();
 	auto adsr = instrument.adsr();
@@ -38,55 +41,79 @@ static SourcePtr create_source_from_note_event(
 	// Need to allow time for adsr release to have effect.
 	auto duration_seconds = music::map_resolution_to_seconds(event.end - event.start, resolution_per_beat, bpm) + adsr.release;
 	SourcePtr source;
-	switch (instrument.type()) {
-		default:
-		case InstrumentSourceType::Sine:
-			source = std::make_unique<SineWave>(freq);
-		break;
-		case InstrumentSourceType::Triangle:
-			source = std::make_unique<TriangleWave>(freq);
-		break;
-		case InstrumentSourceType::Square:
-			source = std::make_unique<SquareWave>(freq);
-		break;
-		case InstrumentSourceType::Saw:
-			source = std::make_unique<SawWave>(freq);
-		break;
-		case InstrumentSourceType::Piano:
-			source = std::make_unique<PianoWave>(freq);
-		break;
-		case InstrumentSourceType::Violin:
-			source = std::make_unique<ViolinWave>(freq);
-		break;
+	
+	if (auto wave = std::get_if<InstrumentSourceWave>(&instrument.source())) {
+		switch (*wave) {
+			default:
+			case InstrumentSourceWave::Sine:
+				source = std::make_unique<SineWave>(freq);
+			break;
+			case InstrumentSourceWave::Triangle:
+				source = std::make_unique<TriangleWave>(freq);
+			break;
+			case InstrumentSourceWave::Square:
+				source = std::make_unique<SquareWave>(freq);
+			break;
+			case InstrumentSourceWave::Saw:
+				source = std::make_unique<SawWave>(freq);
+			break;
+			case InstrumentSourceWave::Piano:
+				source = std::make_unique<PianoWave>(freq);
+			break;
+			case InstrumentSourceWave::Violin:
+				source = std::make_unique<ViolinWave>(freq);
+			break;
+		}
+
+		source = SourceBuilder(std::move(source))
+			.duration(std::chrono::microseconds((int64_t)(duration_seconds * 1e6)))
+			.filter([adsr](double sample, FilterInfo info) {
+				auto total_samples = *info.get_total_samples();
+				auto release_sample_start = total_samples - (int)(adsr.release * info.sample_rate);
+				
+				auto is_release = info.current_sample >= release_sample_start;
+				
+				double value;
+				if (is_release) {
+					auto elapsed_release = (double)(info.current_sample - release_sample_start) / info.sample_rate;
+					auto elapsed = (double)release_sample_start / info.sample_rate;
+					value = adsr.evaluate(elapsed, elapsed_release);
+				} else {
+					auto elapsed = (double)info.current_sample / info.sample_rate;
+					value = adsr.evaluate(elapsed, std::nullopt);
+				}
+				return sample * value;
+			})
+			.build();
+	} else if (auto sample = std::get_if<InstrumentSourceSample>(&instrument.source())) {
+		auto path = (music_base_path / sample->filename);
+		auto file_opt = WaveFile::read(path.string());
+		if (!file_opt) {
+			fprintf(stderr, "[ERROR] Could not find sample at '%ws'\n", path.c_str());
+			return std::nullopt;
+		}
+
+		source = std::make_unique<WaveFile>(std::move(*file_opt));
+		source = SourceBuilder(std::move(source)).buffered(4096).build();
 	}
 
 	source = SourceBuilder(std::move(source))
-		.duration(std::chrono::microseconds((int64_t)(duration_seconds * 1e6)))
 		.amplify(gain)
-		.filter([adsr](double sample, FilterInfo info) {
-			auto total_samples = *info.get_total_samples();
-			auto release_sample_start = total_samples - (int)(adsr.release * info.sample_rate);
-			
-			auto is_release = info.current_sample >= release_sample_start;
-			
-			double value;
-			if (is_release) {
-				auto elapsed_release = (double)(info.current_sample - release_sample_start) / info.sample_rate;
-				auto elapsed = (double)release_sample_start / info.sample_rate;
-				value = adsr.evaluate(elapsed, elapsed_release);
-			} else {
-				auto elapsed = (double)info.current_sample / info.sample_rate;
-				value = adsr.evaluate(elapsed, std::nullopt);
-			}
-			return sample * value;
-		})
 		.build();
 
 	return source;
 }
 
 int main(int argc, char** argv) {
-	auto res = Music::import(argv[1]);
+	if (argc < 2) {
+		return 1;
+	}
+
+	auto music_filename = std::filesystem::path(argv[1]);
+	auto music_base_path = music_filename.parent_path();
+
+	auto res = Music::import(music_filename.string());
+
 	if (auto e = std::get_if<MusicError>(&res)) {
 		if (auto e2 = std::get_if<MusicErrorParse>(e)) {
 			log_error(e2->msg.c_str());
@@ -112,15 +139,22 @@ int main(int argc, char** argv) {
 			auto& pattern = patterns[track_event.pattern_idx];
 			for (auto& note_event : pattern.events()) {
 				auto moved_note_event = note_event.move(track_event.start);
+				auto source_opt = create_source_from_note_event(
+					moved_note_event,
+					instrument,
+					track.gain(),
+					Music::get_resolution_per_beat(),
+					bpm,
+					music_base_path
+				);
+
+				if (!source_opt) {
+					return 1;
+				}
+				
 				sources.push_back(std::make_tuple(
 					moved_note_event.start,
-					create_source_from_note_event(
-						moved_note_event,
-						instrument,
-						track.gain(),
-						Music::get_resolution_per_beat(),
-						bpm
-					)
+					std::move(*source_opt)
 				));
 			}
 		}
@@ -198,6 +232,9 @@ int main(int argc, char** argv) {
 	int64_t acc_nano = 0;
 	int64_t acc_count = 0;
 
+	std::vector<double> samples;
+	samples.reserve(sample_rate * 10);
+
 	while (true) {
 		auto start = std::chrono::high_resolution_clock::now();
 		auto sample_opt = output->next_sample();
@@ -209,13 +246,14 @@ int main(int argc, char** argv) {
 		if (sample_opt) {
 			sample = *sample_opt;
 			sample = tanh(sample);
+			samples.push_back(sample);
 		} else {
 			if (sources.empty()) {
 				break;
 			}
 		}
 
-		while(!queue.try_enqueue((float)sample));
+		// while(!queue.try_enqueue((float)sample));
 
 		auto resolution_time = music::map_seconds_to_resolution(time, Music::get_resolution_per_beat(), bpm);
 		while (!sources.empty() && std::get<0>(sources.back()) <= resolution_time) {
@@ -228,6 +266,8 @@ int main(int argc, char** argv) {
 	}
 	
 	device.close();
+
+	wave::export_samples_as_wave("examples/wave.wav", sample_rate, channel_count, samples.data(), samples.size());
 
 	printf("%lf", (double)acc_nano/acc_count);
 

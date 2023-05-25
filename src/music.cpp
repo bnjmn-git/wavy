@@ -525,27 +525,30 @@ static auto parse_instrument(
 	name_node >> name;
 
 	auto source_node = node[SOURCE_PROP_NAME];
-	if (!source_node.val().has_str()) {
-		return InternalErrorOther{};
-	}
 
-	auto source_node_ss = source_node.val();
-	InstrumentSourceType source_type;
-
-	if (csubstr_compare(source_node_ss, "sine") == 0) {
-		source_type = InstrumentSourceType::Sine;
-	} else if (csubstr_compare(source_node_ss, "triangle") == 0) {
-		source_type = InstrumentSourceType::Triangle;
-	} else if (csubstr_compare(source_node_ss, "square") == 0) {
-		source_type = InstrumentSourceType::Square;
-	} else if (csubstr_compare(source_node_ss, "saw") == 0) {
-		source_type = InstrumentSourceType::Saw;
-	} else if (csubstr_compare(source_node_ss, "piano") == 0) {
-		source_type = InstrumentSourceType::Piano;
-	} else if (csubstr_compare(source_node_ss, "violin") == 0) {
-		source_type = InstrumentSourceType::Violin;
-	} else {
-		return InternalErrorOther{};
+	InstrumentSource source_type = InstrumentSourceWave::Sine;
+	// Using builtin source
+	if (source_node.is_keyval() && source_node.val().has_str()) {
+		auto source_node_ss = source_node.val();
+		if (csubstr_compare(source_node_ss, "sine") == 0) {
+			source_type = InstrumentSourceWave::Sine;
+		} else if (csubstr_compare(source_node_ss, "triangle") == 0) {
+			source_type = InstrumentSourceWave::Triangle;
+		} else if (csubstr_compare(source_node_ss, "square") == 0) {
+			source_type = InstrumentSourceWave::Square;
+		} else if (csubstr_compare(source_node_ss, "saw") == 0) {
+			source_type = InstrumentSourceWave::Saw;
+		} else if (csubstr_compare(source_node_ss, "piano") == 0) {
+			source_type = InstrumentSourceWave::Piano;
+		} else if (csubstr_compare(source_node_ss, "violin") == 0) {
+			source_type = InstrumentSourceWave::Violin;
+		} else {
+			return InternalErrorOther{};
+		}
+	} else if (source_node.is_map() && source_node.has_child("sample")) {
+		InstrumentSourceSample sample;
+		source_node["sample"] >> sample.filename;
+		source_type = std::move(sample);
 	}
 
 	// Optional value
@@ -560,7 +563,7 @@ static auto parse_instrument(
 		adsr = std::get<0>(res);
 	}
 
-	return Instrument(std::move(name), source_type, adsr);
+	return Instrument(std::move(name), std::move(source_type), adsr);
 }
 
 static auto parse_instruments(
