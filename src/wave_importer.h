@@ -123,7 +123,7 @@ namespace wave {
 		std::string_view filename,
 		int sample_rate,
 		int channel_count,
-		double* samples,
+		float* samples,
 		int sample_count
 	) {
 		std::ofstream file(filename.data(), std::ios::binary | std::ios::trunc);
@@ -148,7 +148,7 @@ namespace wave {
 
 		file.write((char*)&header, sizeof(WaveHeader));
 
-		std::for_each_n(samples, sample_count, [&](double sample) {
+		std::for_each_n(samples, sample_count, [&](float sample) {
 			int16_t pcm = (int16_t)(sample * 0x8fff);
 			file.write((char*)&pcm, sizeof(int16_t));
 		});

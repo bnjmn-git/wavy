@@ -18,6 +18,9 @@ struct TimeSignature {
 
 struct MusicErrorParse {
 	std::string msg;
+	MusicErrorParse(std::string msg)
+		: msg(std::move(msg))
+	{}
 };
 
 struct MusicErrorFile {

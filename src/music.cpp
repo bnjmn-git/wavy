@@ -3,24 +3,77 @@
 
 #include <fstream>
 
+template<class...T>
+std::string format_string(char const* fmt, T&&...args) {
+	char buffer[512] = {0};
+	int size = snprintf(buffer, 512, fmt, std::forward<T>(args)...);
+	return std::string(buffer, size);
+}
+
 struct RymlError {
 	std::string msg;
 };
 
 struct InternalErrorUnexpectedNumberOfArgs {
+	std::string name;
 	int actual;
 	int expected;
-	InternalErrorUnexpectedNumberOfArgs(int actual, int expected)
+	InternalErrorUnexpectedNumberOfArgs(std::string name, int expected, int actual)
 		: actual(actual)
 		, expected(expected)
+		, name(std::move(name))
 	{}
 };
 
-struct InternalErrorOther {};
+struct InternalErrorMissingField {
+	std::string name;
+
+	InternalErrorMissingField(std::string name)
+		: name(std::move(name))
+	{}
+};
+
+struct InternalErrorArgumentUnexpectedType {
+	std::string name;
+	int arg_pos;
+	std::string expected;
+	std::string actual;
+
+	InternalErrorArgumentUnexpectedType(std::string name, int arg_pos, std::string expected, std::string actual)
+		: expected(std::move(expected))
+		, actual(std::move(actual))
+		, name(std::move(name))
+		, arg_pos(arg_pos)
+	{}
+};
+
+struct InternalErrorFieldUnexpectedType {
+	std::string name;
+	std::string expected;
+	std::string actual;
+
+	InternalErrorFieldUnexpectedType(std::string name, std::string expected, std::string actual)
+		: expected(std::move(expected))
+		, actual(std::move(actual))
+		, name(std::move(name))
+	{}
+};
+
+struct InternalErrorNoteParseError {
+	NoteParseError error;
+};
+
+struct InternalErrorOther {
+	std::string msg;
+};
 
 using InternalError = std::variant<
 	InternalErrorOther,
-	InternalErrorUnexpectedNumberOfArgs
+	InternalErrorUnexpectedNumberOfArgs,
+	InternalErrorMissingField,
+	InternalErrorArgumentUnexpectedType,
+	InternalErrorFieldUnexpectedType,
+	InternalErrorNoteParseError
 >;
 
 void ryml_error_callback(char const* msg, size_t msg_len, ryml::Location location, void* user_data) {
@@ -50,9 +103,11 @@ static auto parse_time_signature(ryml::ConstNodeRef root)
 	// Time signature is optional, so not an error if not present
 	if (root.has_child(TIME_SIGNATURE_PROP_NAME)) {
 		auto node = root[TIME_SIGNATURE_PROP_NAME];
-		assert(node.is_seq());
+		if (!node.is_seq()) {
+			return InternalErrorFieldUnexpectedType(TIME_SIGNATURE_PROP_NAME.data(), ryml::NodeType(ryml::NodeType_e::SEQ).type_str(), node.type_str());
+		}
 		if (node.num_children() != 2) {
-			return InternalError(InternalErrorUnexpectedNumberOfArgs((int)node.num_children(), 2));
+			return InternalErrorUnexpectedNumberOfArgs(TIME_SIGNATURE_PROP_NAME.data(), 2, (int)node.num_children());
 		}
 		
 		TimeSignature sig;
@@ -65,6 +120,20 @@ static auto parse_time_signature(ryml::ConstNodeRef root)
 	}
 }
 
+char const* get_val_type_name(ryml::csubstr val) {
+	if (val.is_integer()) {
+		return "Integer";
+	}
+	if (val.is_real()) {
+		return "Decimal";
+	}
+	if (val.has_str()) {
+		return "String";
+	}
+
+	return "Don't know";
+}
+
 static auto parse_bpm(ryml::ConstNodeRef root)
 	-> std::variant<std::optional<int>, InternalError>
 {
@@ -72,10 +141,16 @@ static auto parse_bpm(ryml::ConstNodeRef root)
 
 	if (root.has_child(BPM_PROP_NAME)) {
 		auto node = root[BPM_PROP_NAME];
-		// assert(node.has_val());
-		// assert(node.val().is_integer());
-		if (!node.is_keyval() || !node.val().is_integer()) {
-			return InternalErrorOther{};
+		if (!node.is_keyval()) {
+			return InternalErrorFieldUnexpectedType(BPM_PROP_NAME.data(), ryml::NodeType(ryml::NodeType_e::KEYVAL).type_str(), node.type_str());
+		}
+		if (!node.val().is_integer()) {
+			return InternalErrorArgumentUnexpectedType(
+				BPM_PROP_NAME.data(),
+				0,
+				"Integer",
+				get_val_type_name(node.val())
+			);
 		}
 
 		int bpm;
@@ -92,8 +167,20 @@ static auto parse_gain(ryml::ConstNodeRef root)
 	constexpr c4::csubstr GAIN_PROP_NAME("gain");
 	if (root.has_child(GAIN_PROP_NAME)) {
 		auto node = root[GAIN_PROP_NAME];
-		if (!node.is_keyval() || !node.val().is_real()) {
-			return InternalErrorOther{};
+		if (!node.is_keyval()) {
+			return InternalErrorFieldUnexpectedType(
+				GAIN_PROP_NAME.data(),
+				ryml::NodeType(ryml::NodeType_e::KEYVAL).type_str(),
+				node.type_str()
+			);
+		}
+		if (!node.val().is_real()) {
+			return InternalErrorArgumentUnexpectedType(
+				GAIN_PROP_NAME.data(),
+				0,
+				"Decimal",
+				get_val_type_name(node.val())
+			);
 		}
 
 		double gain;
@@ -166,8 +253,30 @@ int csubstr_compare(c4::csubstr const& ss, char const* str) {
 static auto parse_duration_value(ryml::ConstNodeRef node)
 	-> std::variant<Duration, InternalError>
 {
-	if (!node.is_seq() || node.num_children() != 2) {
-		return InternalErrorOther{};
+	if (!node.is_seq()) {
+		return InternalErrorFieldUnexpectedType(
+			"duration",
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			node.type_str()
+		);
+	}
+	if (node.num_children() != 2) {
+		return InternalErrorUnexpectedNumberOfArgs(
+			"duration",
+			2,
+			(int)node.num_children()
+		);
+	}
+
+	for (int i = 0; i < 2; ++i) {
+		if (!node[i].val().is_integer()) {
+			return InternalErrorArgumentUnexpectedType(
+				"duration",
+				i,
+				"Integer",
+				get_val_type_name(node[0].val())
+			);
+		}
 	}
 
 	Duration duration;
@@ -181,7 +290,11 @@ static auto parse_command_delay(ryml::ConstNodeRef node)
 	-> std::variant<CommandDelay, InternalError>
 {
 	if (node.num_children() != 2) {
-		return InternalErrorOther{};
+		return InternalErrorUnexpectedNumberOfArgs(
+			CommandDelay::NAME,
+			1,
+			(int)node.num_children() - 1
+		);
 	}
 
 	CommandDelay delay;
@@ -200,8 +313,20 @@ static auto parse_command_delay(ryml::ConstNodeRef node)
 static auto parse_command_repeat(ryml::ConstNodeRef node)
 	-> std::variant<CommandRepeat, InternalError>
 {
-	if (node.num_children() != 2 || !node[1].val().is_integer()) {
-		return InternalErrorOther{};
+	if (node.num_children() != 2) {
+		return InternalErrorUnexpectedNumberOfArgs(
+			CommandDelay::NAME,
+			1,
+			(int)node.num_children() - 1
+		);
+	}
+	if (!node[1].val().is_integer()) {
+		return InternalErrorArgumentUnexpectedType(
+			CommandRepeat::NAME,
+			0,
+			"Integer",
+			get_val_type_name(node[1].val())
+		);
 	}
 
 	CommandRepeat repeat;
@@ -213,7 +338,11 @@ static auto parse_command_end_repeat(ryml::ConstNodeRef node)
 	-> std::variant<CommandEndRepeat, InternalError>
 {
 	if (node.num_children() != 1) {
-		return InternalErrorOther{};
+		return InternalErrorUnexpectedNumberOfArgs(
+			CommandEndRepeat::NAME,
+			0,
+			(int)node.num_children() - 1
+		);
 	}
 
 	return CommandEndRepeat{};
@@ -222,21 +351,31 @@ static auto parse_command_end_repeat(ryml::ConstNodeRef node)
 static auto parse_note(ryml::ConstNodeRef node)
 	-> std::variant<Note, InternalError>
 {
-	if (auto note = Note::from_str(std::string_view(node.val().data(), node.val().len))) {
-		return *note;
+	auto res = Note::from_str(std::string_view(node.val().data(), node.val().len));
+	if (auto e = std::get_if<1>(&res)) {
+		return InternalErrorNoteParseError{ std::move(*e) };
 	}
 
-	return InternalErrorOther{};
+	return std::get<0>(std::move(res));
 }
 
 static auto parse_command_play_note(ryml::ConstNodeRef node)
 	-> std::variant<CommandPlayNote, InternalError>
 {
-	if (
-		node.num_children() != 3 ||
-		!node[1].val().has_str()
-	) {
-		return InternalErrorOther{};
+	if (node.num_children() != 3) {
+		return InternalErrorUnexpectedNumberOfArgs(
+			CommandPlayNote::NAME,
+			2,
+			(int)node.num_children() - 1
+		);
+	}
+	if (!node[1].val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			CommandPlayNote::NAME,
+			0,
+			"String",
+			get_val_type_name(node[1].val())
+		);
 	}
 
 	std::optional<Note> note_opt;
@@ -267,8 +406,15 @@ static auto parse_command_play_note(ryml::ConstNodeRef node)
 static auto parse_pattern_command(ryml::ConstNodeRef node)
 	-> std::variant<PatternCommand, InternalError>
 {
-	if (!node.is_seq() || !node[0].val().has_str()) {
-		return InternalErrorOther{};
+	if (!node.is_seq()) {
+		return InternalErrorFieldUnexpectedType(
+			"command",
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			node.type_str()
+		);
+	}
+	if (!node[0].val().has_str()) {
+		return InternalErrorOther{ "Command name must be a string" };
 	}
 
 	auto name = node[0].val();
@@ -294,7 +440,7 @@ static auto parse_pattern_command(ryml::ConstNodeRef node)
 		return pass_through(parse_command_play_note(node));
 	}
 
-	return InternalErrorOther{};
+	return InternalErrorOther{ format_string("Command '%s' does not exist", std::string(name.data(), name.len)) };
 }
 
 static std::variant<std::monostate, InternalError> process_pattern_commands(
@@ -322,7 +468,7 @@ static std::variant<std::monostate, InternalError> process_pattern_commands(
 			cur_target = &repeat_stack.back();
 		} else if (auto c = std::get_if<CommandEndRepeat>(&command)) {
 			if (repeat_stack.empty()) {
-				return InternalErrorOther{};
+				return InternalErrorOther{ "Extra 'end-repeat' called" };
 			}
 
 			// We now need to pop the top of the stack and repeatedly fill the next array in the stack
@@ -354,7 +500,7 @@ static std::variant<std::monostate, InternalError> process_pattern_commands(
 
 	// Missing end-repeat command
 	if (!repeat_stack.empty()) {
-		return InternalErrorOther{};
+		return InternalErrorOther{ format_string("Missing %lu 'end-repeat' commands", repeat_stack.size() )};
 	}
 
 	auto beat_value = (double)time_signature.beat_value;
@@ -374,7 +520,7 @@ static std::variant<std::monostate, InternalError> process_pattern_commands(
 				(int)floor(elapsed + duration)
 			));
 		} else {
-			return InternalErrorOther{};
+			return InternalErrorOther{ "Problem with the software itself" };
 		}
 	}
 
@@ -396,18 +542,33 @@ static auto parse_pattern(
 	constexpr c4::csubstr NAME_PROP_NAME("name");
 	constexpr c4::csubstr COMMAND_PROP_NAME("commands");
 
-	if (!node.has_child(NAME_PROP_NAME) || !node.has_child(COMMAND_PROP_NAME)) {
-		return InternalErrorOther{};
+	if (!node.has_child(NAME_PROP_NAME)) {
+		return InternalErrorMissingField(NAME_PROP_NAME.data());
+	}
+	if (!node.has_child(COMMAND_PROP_NAME)) {
+		return InternalErrorMissingField(COMMAND_PROP_NAME.data());
 	}
 
 	auto name_node = node[NAME_PROP_NAME];
-	if (!name_node.is_keyval() || !name_node.val().has_str()) {
-		return InternalErrorOther{};
+	if (!name_node.is_keyval()) {
+		return InternalErrorMissingField(NAME_PROP_NAME.data());
+	}
+	if (!name_node.val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			NAME_PROP_NAME.data(),
+			0,
+			"String",
+			get_val_type_name(name_node.val())
+		);
 	}
 
 	auto commands_node = node[COMMAND_PROP_NAME];
 	if (!commands_node.is_seq()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			COMMAND_PROP_NAME.data(),
+			"String",
+			get_val_type_name(commands_node.val())
+		);
 	}
 
 	Pattern pattern(std::string(name_node.val().data(), name_node.val().len));
@@ -446,12 +607,16 @@ static auto parse_patterns(
 {
 	constexpr c4::csubstr PATTERNS_PROP_NAME("patterns");
 	if (!root.has_child(PATTERNS_PROP_NAME)) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(PATTERNS_PROP_NAME.data());
 	}
 
 	auto patterns_node = root[PATTERNS_PROP_NAME];
 	if (!patterns_node.is_seq()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			PATTERNS_PROP_NAME.data(),
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			patterns_node.type_str()
+		);
 	}
 
 	std::vector<Pattern> patterns;
@@ -472,7 +637,11 @@ static auto parse_adsr(ryml::ConstNodeRef node, Adsr default_adsr)
 	-> std::variant<Adsr, InternalError>
 {
 	if (!node.is_map()) {
-		return InternalError{};
+		return InternalErrorFieldUnexpectedType(
+			"adsr",
+			ryml::NodeType(ryml::NodeType_e::MAP).type_str(),
+			node.type_str()
+		);
 	}
 
 	auto adsr = default_adsr;
@@ -505,20 +674,24 @@ static auto parse_instrument(
 	constexpr c4::csubstr ADSR_PROP_NAME("adsr");
 
 	if (!node.is_map()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			"Instrument",
+			ryml::NodeType(ryml::NodeType_e::MAP).type_str(),
+			node.type_str()
+		);
 	}
 
 	if (!node.has_child(NAME_PROP_NAME)) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(NAME_PROP_NAME.data());
 	}
 
 	if (!node.has_child(SOURCE_PROP_NAME)) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(SOURCE_PROP_NAME.data());
 	}
 
 	auto name_node = node[NAME_PROP_NAME];
 	if (!name_node.val().has_str()) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(NAME_PROP_NAME.data());
 	}
 
 	std::string name;
@@ -572,12 +745,16 @@ static auto parse_instruments(
 {
 	constexpr c4::csubstr INSTRUMENTS_PROP_NAME("instruments");
 	if (!root.has_child(INSTRUMENTS_PROP_NAME)) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(INSTRUMENTS_PROP_NAME.data());
 	}
 
 	auto instruments_node = root[INSTRUMENTS_PROP_NAME];
 	if (!instruments_node.is_seq()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			INSTRUMENTS_PROP_NAME.data(),
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			instruments_node.type_str()
+		);
 	}
 
 	std::vector<Instrument> instruments;
@@ -597,11 +774,20 @@ static auto parse_instruments(
 static auto parse_command_play_pattern(ryml::ConstNodeRef node)
 	-> std::variant<CommandPlayPattern, InternalError>
 {
-	if (
-		node.num_children() != 2 ||
-		!node[1].val().has_str()
-	) {
-		return InternalErrorOther{};
+	if (node.num_children() != 2) {
+		return InternalErrorUnexpectedNumberOfArgs(
+			CommandPlayPattern::NAME,
+			1,
+			(int)node.num_children() - 1
+		);
+	}
+	if (!node[1].val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			CommandPlayPattern::NAME,
+			0,
+			"String",
+			get_val_type_name(node[1].val())
+		);
 	}
 
 	std::string pattern_name;
@@ -613,8 +799,20 @@ static auto parse_command_play_pattern(ryml::ConstNodeRef node)
 static auto parse_track_command(ryml::ConstNodeRef node)
 	-> std::variant<TrackCommand, InternalError>
 {
-	if (!node.is_seq() || !node[0].val().has_str()) {
-		return InternalErrorOther{};
+	if (!node.is_seq()) {
+		return InternalErrorFieldUnexpectedType(
+			"track command",
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			node.type_str()
+		);
+	}
+	if (!node[0].val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			"track command",
+			0,
+			"String",
+			get_val_type_name(node[0].val())
+		);
 	}
 
 	auto name = node[0].val();
@@ -640,7 +838,7 @@ static auto parse_track_command(ryml::ConstNodeRef node)
 		return pass_through(parse_command_play_pattern(node));
 	}
 
-	return InternalErrorOther{};
+	return InternalErrorOther{ format_string("Command '%s' does not exist", std::string(name.data(), name.len).c_str()) };
 }
 
 static std::variant<std::monostate, InternalError> process_track_commands(
@@ -669,7 +867,7 @@ static std::variant<std::monostate, InternalError> process_track_commands(
 			cur_target = &repeat_stack.back();
 		} else if (auto c = std::get_if<CommandEndRepeat>(&command)) {
 			if (repeat_stack.empty()) {
-				return InternalErrorOther{};
+				return InternalErrorOther{ "Extra 'end-repeat' called" };
 			}
 
 			// We now need to pop the top of the stack and repeatedly fill the next array in the stack
@@ -712,7 +910,7 @@ static std::variant<std::monostate, InternalError> process_track_commands(
 				return pattern.name().compare(c->pattern_name) == 0;
 			});
 			if (pattern == patterns.end()) {
-				return InternalErrorOther{};
+				return InternalErrorOther{ format_string("Missing %lu 'end-repeat' commands", repeat_stack.size() )};
 			}
 
 			auto pattern_idx = pattern - patterns.begin();
@@ -728,7 +926,7 @@ static std::variant<std::monostate, InternalError> process_track_commands(
 			// sequentially in the order they appear.
 			elapsed += (double)duration;
 		} else {
-			return InternalErrorOther{};
+			return InternalErrorOther{ "Problem with software itself" };
 		}
 	}
 
@@ -744,32 +942,70 @@ static auto parse_track(
 	TimeSignature time_signature
 ) -> std::variant<Track, InternalError>
 {
-	if (!node.is_map() || node.num_children() == 0) {
-		return InternalErrorOther{};
+	if (!node.is_map()) {
+		return InternalErrorFieldUnexpectedType(
+			"track",
+			ryml::NodeType(ryml::NodeType_e::MAP).type_str(),
+			node.type_str()
+		);
 	}
 
 	constexpr c4::csubstr NAME_PROP_NAME("name");
 	constexpr c4::csubstr INSTRUMENT_PROP_NAME("instrument");
 	constexpr c4::csubstr COMMANDS_PROP_NAME("commands");
 
-	if (!node.has_child(NAME_PROP_NAME) || !node.has_child(INSTRUMENT_PROP_NAME) || !node.has_child(COMMANDS_PROP_NAME)) {
-		return InternalErrorOther{};
+	if (!node.has_child(NAME_PROP_NAME)) {
+		return InternalErrorMissingField(NAME_PROP_NAME.data());
+	}
+	if (!node.has_child(INSTRUMENT_PROP_NAME)) {
+		return InternalErrorMissingField(INSTRUMENT_PROP_NAME.data());
+	}
+	if (!node.has_child(COMMANDS_PROP_NAME)) {
+		return InternalErrorMissingField(COMMANDS_PROP_NAME.data());
 	}
 
 	auto name_node = node[NAME_PROP_NAME];
 	auto instrument_node = node[INSTRUMENT_PROP_NAME];
 	auto commands_node = node[COMMANDS_PROP_NAME];
 
-	if (!name_node.is_keyval() || !name_node.val().has_str()) {
-		return InternalErrorOther{};
+	if (!name_node.is_keyval()) {
+		return InternalErrorFieldUnexpectedType(
+			"track name",
+			ryml::NodeType(ryml::NodeType_e::KEYVAL).type_str(),
+			name_node.type_str()
+		);
+	}
+	if (!name_node.val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			"track name",
+			0,
+			"String",
+			get_val_type_name(name_node.val())
+		);
 	}
 
-	if (!instrument_node.is_keyval() || !instrument_node.val().has_str()) {
-		return InternalErrorOther{};
+	if (!instrument_node.is_keyval()) {
+		return InternalErrorFieldUnexpectedType(
+			"track instrument",
+			ryml::NodeType(ryml::NodeType_e::KEYVAL).type_str(),
+			name_node.type_str()
+		);
+	}
+	if (!instrument_node.val().has_str()) {
+		return InternalErrorArgumentUnexpectedType(
+			"track instrument",
+			0,
+			"String",
+			get_val_type_name(instrument_node.val())
+		);
 	}
 
 	if (!commands_node.is_seq()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			"track commands",
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			commands_node.type_str()
+		);
 	}
 
 	std::string_view instrument_name(instrument_node.val().data(), instrument_node.val().len);
@@ -777,13 +1013,31 @@ static auto parse_track(
 		return instrument.name().compare(instrument_name) == 0;
 	});
 	if (instrument == instruments.end()) {
-		return InternalErrorOther{};
+		return InternalErrorOther{ format_string("Instrument '%s' does not exist", std::string(instrument_name.data(), instrument_name.length())) };
 	}
 
 	auto instrument_idx = instrument - instruments.begin();
 
-	double gain;
-	node["gain"] >> gain;
+	double gain = 1.0;
+	if (node.has_child("gain")) {
+		auto gain_node = node["gain"];
+		if (!gain_node.is_keyval()) {
+			return InternalErrorFieldUnexpectedType(
+				"gain",
+				ryml::NodeType(ryml::NodeType_e::KEYVAL).type_str(),
+				gain_node.type_str()
+			);
+		}
+		if (!gain_node.val().is_real()) {
+			return InternalErrorArgumentUnexpectedType(
+				"gain",
+				0,
+				"Decimal",
+				get_val_type_name(gain_node.val())
+			);
+		}
+		gain_node >> gain;
+	}
 
 	Track track(std::string(name_node.val().data(), name_node.val().len), (int)instrument_idx, gain);
 	std::vector<TrackCommand> commands;
@@ -823,12 +1077,16 @@ static auto parse_tracks(
 {
 	constexpr c4::csubstr TRACKS_PROP_NAME("tracks");
 	if (!root.has_child(TRACKS_PROP_NAME)) {
-		return InternalErrorOther{};
+		return InternalErrorMissingField(TRACKS_PROP_NAME.data());
 	}
 
 	auto tracks_node = root[TRACKS_PROP_NAME];
 	if (!tracks_node.is_seq()) {
-		return InternalErrorOther{};
+		return InternalErrorFieldUnexpectedType(
+			TRACKS_PROP_NAME.data(),
+			ryml::NodeType(ryml::NodeType_e::SEQ).type_str(),
+			tracks_node.type_str()
+		);
 	}
 
 	std::vector<Track> tracks;
@@ -853,8 +1111,57 @@ static auto parse_tracks(
 	return tracks;
 }
 
-MusicError map_internal_to_music_error(InternalError e) {
-	return MusicErrorParse{};
+MusicError map_internal_to_music_error(InternalError err) {
+	if (auto e = std::get_if<InternalErrorUnexpectedNumberOfArgs>(&err)) {
+		return MusicErrorParse(format_string(
+			"Unexpected number of arguments to '%s' (expected: %i, actual: %i)",
+			e->name.c_str(), e->expected, e->actual
+		));
+	}
+	if (auto e = std::get_if<InternalErrorMissingField>(&err)) {
+		return MusicErrorParse(format_string(
+			"Missing field '%s'",
+			e->name.c_str()
+		));
+	}
+	if (auto e = std::get_if<InternalErrorArgumentUnexpectedType>(&err)) {
+		return MusicErrorParse(format_string(
+			"Argument '%i' has unexpected type for '%s' (expected: %s, actual: %s)",
+			e->arg_pos, e->name.c_str(), e->expected.c_str(), e->actual.c_str()
+		));
+	}
+	if (auto e = std::get_if<InternalErrorFieldUnexpectedType>(&err)) {
+		return MusicErrorParse(format_string(
+			"Field '%s' has unexpected type (expected: %s, actual: %s)",
+			e->name.c_str(), e->expected.c_str(), e->actual.c_str()
+		));
+	}
+	if (auto e = std::get_if<InternalErrorNoteParseError>(&err)) {
+		auto& error = e->error;
+		if (auto ne = std::get_if<NoteParseErrorInvalidFormat>(&error)) {
+			return MusicErrorParse("A note had invalid format. A correct format is of the form C4, A#3, Gb5. Letter must be capitalized, and octave less than 10");
+		}
+		if (auto ne = std::get_if<NoteParseErrorInvalidLetter>(&error)) {
+			switch (*ne) {
+				case NoteParseErrorInvalidLetter::DoesNotExist:
+					return MusicErrorParse("A note had a letter that does not exist in standard western notation");
+				case NoteParseErrorInvalidLetter::LowerCase:
+					return MusicErrorParse("A note had a lower case letter. Must be capitalized");
+				default: return MusicErrorParse("Something wrong with the software");
+			}
+		}
+		if (auto ne = std::get_if<NoteParseErrorInvalidModifier>(&error)) {
+			return MusicErrorParse("A note had an invalid modifier. Must be # or b or left empty");
+		}
+		if (auto ne = std::get_if<NoteParseErrorInvalidOctave>(&error)) {
+			return MusicErrorParse(format_string("A note had an octave of %u, must be less than 10", ne->octave));
+		}
+		if (auto ne = std::get_if<NoteParseErrorUnexpectedLength>(&error)) {
+			return MusicErrorParse(format_string("A note had %u characters, must be 2 or 3", ne->length));
+		}
+	}
+
+	return MusicErrorParse("Something went wrong");
 }
 
 std::variant<Music, MusicError> Music::import(std::string_view filename) {

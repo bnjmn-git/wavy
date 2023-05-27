@@ -1,0 +1,52 @@
+bpm: 120
+time-signature: [4, 4]
+gain: 0.5
+
+patterns:
+  - name: basic-pattern
+    commands: [
+      [repeat, 3],
+      [play, A3, [1,4]],
+      [delay, [1,4]],
+      [play, B3, [1,4]],
+      [delay, [1,4]],
+      [play, C#4, [1,6]],
+      [delay, [1,6]],
+      [play, D4, [1,6]],
+      [delay, [1,6]],
+      [play, E4, [1,6]],
+      [delay, [1,6]],
+      [play, F#4, [1,4]],
+      [delay, [1,4]],
+      [play, G#4, [1,8]],
+      [delay, [1,8]],
+      [play, F#4, [1,8]],
+      [delay, [1,8]],
+      [play, E4, [1,8]],
+      [delay, [1,8]],
+      [play, D4, [1,8]],
+      [delay, [1,8]],
+      [play, C#4, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, A3, [1,8]],
+      [end-repeat]
+    ]
+
+instruments:
+  - name: basic-instrument
+    source: sine
+    adsr:
+      attack: 0.4
+      decay: 0.1
+      sustain: 0.5
+      release: 0.3
+
+tracks:
+  - name: track0
+    instrument: basic-instrument
+    gain: 0.3
+    commands: [
+      [play, basic-pattern]
+    ]

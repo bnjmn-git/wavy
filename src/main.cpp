@@ -104,12 +104,113 @@ static std::optional<SourcePtr> create_source_from_note_event(
 	return source;
 }
 
+struct CommandLineArgs {
+	std::optional<char const*> music_filename;
+	std::optional<char const*> export_filename;
+};
+
+CommandLineArgs parse_command_args(int argc, char** argv) {
+	CommandLineArgs command_args;
+
+	bool export_opt = false;
+	for (int i = 1; i < argc; ++i) {
+		char* arg = argv[i];
+		if (strcmp(arg, "-e") == 0) {
+			export_opt = true;
+		} else {
+			if (export_opt) {
+				command_args.export_filename = arg;
+				export_opt = false;
+			} else {
+				command_args.music_filename = arg;
+			}
+		}
+	}
+
+	if (export_opt) {
+		fprintf(stdout, "Export was specified without a path, defaulting to playback\n");
+	}
+
+	return command_args;
+}
+
+using Queue = moodycamel::ConcurrentQueue<float, ConcurrentQueueTraits>;
+
+std::tuple<audio::Device, std::shared_ptr<Queue>> play_on_device() {
+	auto instance = audio::Instance();
+	auto device = *instance.get_default_output_device();
+
+	auto& sample_rates = device.available_sample_rates();
+	int sample_rate = 48000;
+	auto sample_rate_it = std::lower_bound(sample_rates.begin(), sample_rates.end(), sample_rate);
+	sample_rate = sample_rate_it == sample_rates.end() ? sample_rates.back() : *sample_rate_it;
+	
+	device.open(sample_rate);
+
+	auto buffer_size = device.buffer_size();
+	auto channel_count = device.channel_count();
+	auto frame_count = buffer_size*channel_count;
+	sample_rate = device.sample_rate();
+
+	// We give queue double the frame count to give the sending thread a margin
+	// to prevent the audio thread from dequeuing an empty queue.
+	auto queue = std::make_shared<Queue>(frame_count * 2);
+
+	// Buffer for audio thread to deque samples in bulk.
+	std::vector<float> samples_buffer(frame_count, 0.0f);
+
+	// Holds how many samples of the next audio buffer should we zero out
+	// due to an empty queue.
+	int empty_overlap_count = 0;
+
+	device.start([=](float* data, int channel_count, int sample_count) mutable {
+		auto samples_remaining = channel_count * sample_count;
+
+		if (empty_overlap_count > 0 && empty_overlap_count <= samples_remaining) {
+			memset(data, 0, sizeof(float) * empty_overlap_count);
+			data += empty_overlap_count;
+			samples_remaining -= empty_overlap_count;
+			empty_overlap_count = 0;
+		}
+		
+		while (samples_remaining > 0) {
+			auto count = (int)queue->try_dequeue_bulk(samples_buffer.data(), samples_remaining);
+			if (count > 0) {
+				data = std::copy_n(samples_buffer.begin(), count, data);
+			} else {
+				// When the queue is empty, we need to zero out channel_count samples
+				// so that the next enqueue will be at a sample corresponding to the
+				// correct channel. If the samples_remaining is less than channel_count,
+				// then the zeroing needs to also occur in the next audio buffer, so we
+				// keep track of that as well.
+				if (samples_remaining < channel_count) {
+					empty_overlap_count = channel_count - samples_remaining;
+				}
+
+				count = std::min(samples_remaining, channel_count);
+				memset(data, 0, sizeof(float) * count);
+			}
+
+			samples_remaining -= count;
+		}
+	});
+
+	return { std::move(device), queue };
+}
+
 int main(int argc, char** argv) {
 	if (argc < 2) {
+		log_error("Missing file to music yaml file");
 		return 1;
 	}
 
-	auto music_filename = std::filesystem::path(argv[1]);
+	auto command_args = parse_command_args(argc, argv);
+	if (!command_args.music_filename) {
+		log_error("Missing file to music yaml file");
+		return 1;
+	}
+
+	auto music_filename = std::filesystem::path(*command_args.music_filename);
 	auto music_base_path = music_filename.parent_path();
 
 	auto res = Music::import(music_filename.string());
@@ -165,63 +266,44 @@ int main(int argc, char** argv) {
 		return std::get<0>(lhs) > std::get<0>(rhs);
 	});
 
-	auto instance = audio::Instance();
-	auto device = *instance.get_default_output_device();
+	std::optional<audio::Device> device;
 
-	auto& sample_rates = device.available_sample_rates();
+	// Default values when exporting
+	int channel_count = 2;
 	int sample_rate = 48000;
-	auto sample_rate_it = std::lower_bound(sample_rates.begin(), sample_rates.end(), sample_rate);
-	sample_rate = sample_rate_it == sample_rates.end() ? sample_rates.back() : *sample_rate_it;
-	
-	device.open(sample_rate);
 
-	auto buffer_size = device.buffer_size();
-	auto channel_count = device.channel_count();
-	auto frame_count = buffer_size*channel_count;
-	sample_rate = device.sample_rate();
+	// When exporting, we need to store all samples generated
+	std::vector<float> export_samples;
 
-	// We give queue double the frame count to give the sending thread a margin
-	// to prevent the audio thread from dequeuing an empty queue.
-	moodycamel::ConcurrentQueue<float, ConcurrentQueueTraits> queue(frame_count * 2);
+	// Depends on whether we are exporting or playing back.
+	std::function<bool(float)> enqueue;
 
-	// Buffer for audio thread to deque samples in bulk.
-	std::vector<float> samples_buffer(frame_count, 0.0f);
+	if (!command_args.export_filename) {
+		auto [device_, queue_] = play_on_device();
+		// Cannot captures binded structs
+		auto queue = std::move(queue_);
+		device = std::move(device_);
 
-	// Holds how many samples of the next audio buffer should we zero out
-	// due to an empty queue.
-	int empty_overlap_count = 0;
+		fprintf(stdout, "Playing back on %s\n", device->name().data());
 
-	device.start([&](float* data, int channel_count, int sample_count) {
-		auto samples_remaining = channel_count * sample_count;
+		channel_count = device->channel_count();
+		sample_rate = device->sample_rate();
 
-		if (empty_overlap_count > 0 && empty_overlap_count <= samples_remaining) {
-			memset(data, 0, sizeof(float) * empty_overlap_count);
-			data += empty_overlap_count;
-			samples_remaining -= empty_overlap_count;
-			empty_overlap_count = 0;
-		}
-		
-		while (samples_remaining > 0) {
-			auto count = (int)queue.try_dequeue_bulk(samples_buffer.data(), samples_remaining);
-			if (count > 0) {
-				data = std::copy_n(samples_buffer.begin(), count, data);
-			} else {
-				// When the queue is empty, we need to zero out channel_count samples
-				// so that the next enqueue will be at a sample corresponding to the
-				// correct channel. If the samples_remaining is less than channel_count,
-				// then the zeroing needs to also occur in the next audio buffer, so we
-				// keep track of that as well.
-				if (samples_remaining < channel_count) {
-					empty_overlap_count = channel_count - samples_remaining;
-				}
+		enqueue = [=](float sample) {
+			return queue->try_enqueue(sample);
+		};
+	} else {
+		fprintf(stdout, "Exporting to %s\n", *command_args.export_filename);
 
-				count = std::min(samples_remaining, channel_count);
-				memset(data, 0, sizeof(float) * count);
-			}
+		auto seconds = music::map_resolution_to_seconds(std::get<0>(sources[0]), Music::get_resolution_per_beat(), bpm);
+		auto sample_count = (size_t)(seconds * sample_rate);
+		export_samples.reserve(sample_count);
 
-			samples_remaining -= count;
-		}
-	});
+		enqueue = [&](float sample) {
+			export_samples.push_back(sample);
+			return true;
+		};
+	}
 
 	auto [mixer, mixer_controller] = Mixer::create_mixer(channel_count, sample_rate);
 	auto output = SourceBuilder(std::move(mixer)).amplify(gain).buffered(1024).build();
@@ -229,31 +311,20 @@ int main(int argc, char** argv) {
 	double time = 0.0;
 	double dt = 1.0 / (sample_rate * channel_count);
 
-	int64_t acc_nano = 0;
-	int64_t acc_count = 0;
-
-	std::vector<double> samples;
-	samples.reserve(sample_rate * 10);
-
 	while (true) {
-		auto start = std::chrono::high_resolution_clock::now();
 		auto sample_opt = output->next_sample();
-		auto end = std::chrono::high_resolution_clock::now();
-		acc_nano += (end - start).count();
-		acc_count += 1;
 
 		auto sample = 0.0;
 		if (sample_opt) {
 			sample = *sample_opt;
 			sample = tanh(sample);
-			samples.push_back(sample);
 		} else {
 			if (sources.empty()) {
 				break;
 			}
 		}
 
-		// while(!queue.try_enqueue((float)sample));
+		while(!enqueue((float)sample));
 
 		auto resolution_time = music::map_seconds_to_resolution(time, Music::get_resolution_per_beat(), bpm);
 		while (!sources.empty() && std::get<0>(sources.back()) <= resolution_time) {
@@ -264,12 +335,18 @@ int main(int argc, char** argv) {
 
 		time += dt;
 	}
-	
-	device.close();
 
-	wave::export_samples_as_wave("examples/wave.wav", sample_rate, channel_count, samples.data(), samples.size());
+	if (command_args.export_filename) {
+		wave::export_samples_as_wave(
+			std::string_view(*command_args.export_filename),
+			sample_rate,
+			channel_count,
+			export_samples.data(),
+			(int)export_samples.size()
+		);
+	}
 
-	printf("%lf", (double)acc_nano/acc_count);
+	fprintf(stdout, "Done :)\n");
 
 	return 0;
 }

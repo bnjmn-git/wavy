@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <string_view>
-#include <optional>
+#include <variant>
 
 enum class Letter : uint8_t {
 	// C is the first variant as standard music notation has octaves
@@ -46,6 +46,23 @@ namespace detail {
 	constexpr double A4_FREQ = 440.0;
 }
 
+struct NoteParseErrorUnexpectedLength { uint32_t length; };
+struct NoteParseErrorInvalidOctave { uint32_t octave; };
+enum struct NoteParseErrorInvalidLetter {
+	LowerCase,
+	DoesNotExist
+};
+struct NoteParseErrorInvalidModifier {};
+struct NoteParseErrorInvalidFormat {};
+
+using NoteParseError = std::variant<
+	NoteParseErrorUnexpectedLength,
+	NoteParseErrorInvalidOctave,
+	NoteParseErrorInvalidLetter,
+	NoteParseErrorInvalidModifier,
+	NoteParseErrorInvalidFormat
+>;
+
 class Note {
 public:
 
@@ -68,7 +85,7 @@ public:
 	 * @param str Must be in the format "Letter [Modifier] Octave". For example,
 	 * "C#4", "Ab1", "G3". The letter must be capitalized, and octaves no greater than 9.
 	*/
-	static std::optional<Note> from_str(std::string_view str);
+	static std::variant<Note, NoteParseError> from_str(std::string_view str);
 
 private:
 

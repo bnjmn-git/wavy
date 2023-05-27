@@ -2,9 +2,9 @@
 
 #include <cstdlib>
 
-std::optional<Note> Note::from_str(std::string_view str) {
+std::variant<Note, NoteParseError> Note::from_str(std::string_view str) {
 	if (str.length() < 2 || str.length() > 3) {
-		return std::nullopt;
+		return NoteParseErrorUnexpectedLength { (uint32_t)str.length() };
 	}
 
 	char copy[4] = {0};
@@ -16,11 +16,11 @@ std::optional<Note> Note::from_str(std::string_view str) {
 
 	if (str.length() == 2) {
 		if (sscanf(copy, "%c%u", &letter_c, &octave) != 2) {
-			return std::nullopt;
+			return NoteParseErrorInvalidFormat{};
 		}
 	} else if (str.length() == 3) {
 		if (sscanf(copy, "%c%c%u", &letter_c, &modifier_c, &octave) != 3) {
-			return std::nullopt;
+			return NoteParseErrorInvalidFormat{};
 		}
 	}
 
@@ -33,7 +33,16 @@ std::optional<Note> Note::from_str(std::string_view str) {
 		case 'G': base = (int)Letter::G; break;
 		case 'A': base = (int)Letter::A; break;
 		case 'B': base = (int)Letter::B; break;
-		default: return std::nullopt;
+
+		case 'c':
+		case 'd':
+		case 'e':
+		case 'f':
+		case 'g':
+		case 'a':
+		case 'b':
+			return NoteParseErrorInvalidLetter::LowerCase;
+		default: return NoteParseErrorInvalidLetter::DoesNotExist;
 	}
 
 	if (modifier_c == '#') {
@@ -41,7 +50,7 @@ std::optional<Note> Note::from_str(std::string_view str) {
 	} else if (modifier_c == 'b') {
 		base -= 1;
 	} else if (modifier_c != 0) {
-		return std::nullopt;
+		return NoteParseErrorInvalidModifier{};
 	}
 
 	if (base < 0) {
@@ -49,6 +58,10 @@ std::optional<Note> Note::from_str(std::string_view str) {
 	}
 
 	auto letter = (Letter)base;
+
+	if (octave > 9) {
+		return NoteParseErrorInvalidOctave { octave };
+	}
 
 	return Note(letter, (int8_t)octave);
 }

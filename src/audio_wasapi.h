@@ -168,13 +168,13 @@ namespace audio {
 
 			CoTaskMemFree(wave_format);
 
-			// _channels = wave_format->nChannels;
-			_channels = 2;
-			// _channel_mask = wave_format_ex.dwChannelMask;
-			_channel_mask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+			_channels = wave_format->nChannels;
+			// _channels = 2;
+			_channel_mask = wave_format_ex.dwChannelMask;
+			// _channel_mask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 			assert(wave_format_ex.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
-			assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_LEFT);
-			assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_RIGHT);
+			// assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_LEFT);
+			// assert(wave_format_ex.dwChannelMask & SPEAKER_FRONT_RIGHT);
 
 			_client_event = CreateEvent(nullptr, false, false, nullptr);
 		}

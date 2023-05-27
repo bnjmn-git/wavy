@@ -380,7 +380,7 @@ patterns:
       [delay, [1,8]],
       [end-repeat]
     ]
-  - name: chords
+  - name: chords-a
     commands: [
       [play, A3, [3,1]],
       [repeat, 3],
@@ -416,10 +416,71 @@ patterns:
       [play, F4, [4,4]],
       [play, A4, [4,4]],
       [delay, [1, 1]],
+    ]
+  - name: chords-a-end
+    commands: [
       [play, E3, [4,4]],
       [play, G4, [4,4]],
       [play, B4, [4,4]],
       [delay, [1, 1]],
+    ]
+  - name: chords-b
+    commands: [
+      [play, A3, [2,1]],
+      [play, C4, [2,1]],
+      [play, E4, [2,1]],
+      [delay, [2,1]],
+      [play, A3, [2,1]],
+      [play, D4, [2,1]],
+      [play, F4, [2,1]],
+      [delay, [2,1]],
+      [play, E3, [2,1]],
+      [play, A3, [2,1]],
+      [play, A2, [2,1]],
+      [delay, [1,1]],
+      [play, E4, [1,1]],
+      [play, E5, [1,1]],
+      [delay, [1,1]],
+      [play, F3, [2,1]],
+      [play, A3, [2,1]],
+      [play, A2, [2,1]],
+      [delay, [1,1]],
+      [play, F4, [1,1]],
+      [play, F5, [1,1]],
+      [delay, [1,1]],
+      [play, A3, [2,1]],
+      [play, C4, [2,1]],
+      [play, E4, [2,1]],
+      [delay, [2,1]],
+      [play, A3, [2,1]],
+      [play, D4, [2,1]],
+      [play, F4, [2,1]],
+      [delay, [2,1]],
+      [play, B3, [1,1]],
+      [play, D4, [1,1]],
+      [play, F4, [1,1]],
+      [delay, [1,1]],
+      [play, E3, [1,1]],
+      [play, C4, [1,1]],
+      [play, E4, [1,1]],
+      [delay, [1,1]],
+      [play, F3, [2,1]],
+      [play, A3, [2,1]],
+      [play, D4, [2,1]],
+      [delay, [2,1]],
+    ]
+  - name: star-wars
+    commands: [
+      [play, C6, [1,8]],
+      [delay, [1,8]],
+      [play, D6, [1,8]],
+      [delay, [1,8]],
+      [play, C6, [1,16]],
+      [delay, [1,16]],
+      [play, B5, [1,16]],
+      [delay, [1,16]],
+      [play, A5, [1,16]],
+      [delay, [1,16]],
     ]
   - name: drum-pattern
     commands: [
@@ -434,7 +495,7 @@ patterns:
       [delay, [1,1]],
       [play, B5, [1,1]],
       [delay, [1,1]],
-      [play, A5, [2,1]],
+      [play, A5, [5,2]],
       [delay, [2,1]],
       [delay, [2,1]],
       [delay, [1,4]],
@@ -879,12 +940,31 @@ patterns:
 
       [end-repeat],
     ]
-  - name: s
+  - name: dadada
     commands: [
-      [delay, [1,4]],
-      [play, A3, [1,8]],
+      [play, E4, [1,8]],
       [delay, [1,8]],
-      [play, A3, [1,8]],
+      [play, E4, [1,8]],
+      [delay, [1,8]],
+      [play, D4, [1,8]],
+      [delay, [1,8]],
+      [play, D4, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, B3, [1,8]],
+      [delay, [1,8]],
+      [play, D4, [1,8]],
+      [delay, [1,8]],
+      [play, D4, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
+      [delay, [1,8]],
+      [play, C4, [1,8]],
       [delay, [1,8]],
       [play, B3, [1,8]],
       [delay, [1,8]],
@@ -893,19 +973,6 @@ patterns:
       [play, C4, [1,8]],
       [delay, [1,8]],
       [play, C4, [1,8]],
-      [delay, [1,8]],
-      [delay, [1,4]],
-      [play, A3, [1,8]],
-      [delay, [1,8]],
-      [play, A3, [1,8]],
-      [delay, [1,8]],
-      [play, B3, [1,8]],
-      [delay, [1,8]],
-      [play, B3, [1,8]],
-      [delay, [1,8]],
-      [play, A3, [1,8]],
-      [delay, [1,8]],
-      [play, A3, [1,8]],
     ]
 
 instruments:
@@ -940,10 +1007,10 @@ instruments:
   - name: lead2
     source: saw
     adsr:
-      attack: 0.1
+      attack: 0.05
       decay: 0.5
-      sustain: 0.1
-      release: 0.03
+      sustain: 1.0
+      release: 0.05
   - name: bass
     source: sine
     adsr:
@@ -963,7 +1030,7 @@ tracks:
     instrument: lead
     gain: 0.12
     commands: [
-      [play, melody-b],
+      [play, melody-a],
       [play, melody-a],
       [play, melody-b],
     ]
@@ -971,60 +1038,79 @@ tracks:
     instrument: lead
     gain: 0.12
     commands: [
-      [play, melody-b-high],
+      [play, melody-a-high],
       [play, melody-a-high],
       [play, melody-b-high],
     ]
   - name: track3
     instrument: violin
-    gain: 0.09
+    gain: 0.08
     commands: [
-      [delay, [16, 1]],
+      [repeat, 2],
       [delay, [3, 1]],
       [play, high],
       [delay, [8,1]],
-      [repeat, 4],
-      [play, s],
       [end-repeat]
     ]
   - name: track1
     instrument: bass
-    gain: 0.25
+    gain: 0.23
     commands: [
-      [play, bass-b],
       [play, bass-a],
+      [play, bass-a],
+      [play, bass-b],
     ]
   - name: track124
     instrument: chords
-    gain: 0.15
+    gain: 0.12
     commands: [
-      # [repeat, 2],
-      [delay, [16,1]],
-      [play, chords],
-      # [end-repeat]
+      [play, chords-a],
+      [delay, [1,1]],
+      [play, chords-a],
+      [play, chords-a-end],
+      [play, chords-b]
     ]
   - name: ooh
     instrument: ooh
-    gain: 0.1
+    gain: 0.09
     commands: [
       [delay, [17,1]],
       [play, ooh],
     ]
+  - name: star-wars
+    gain: 0.05
+    instrument: violin
+    commands: [
+      [delay, [40,1]],
+      [repeat, 16],
+      [play, star-wars],
+      [delay, [1,16]],
+      [end-repeat]
+    ]
+  - name: dadada
+    gain: 0.07
+    instrument: violin
+    commands: [
+      [delay, [32,1]],
+      [repeat, 8],
+      [play, dadada],
+      [end-repeat]
+    ]
   - name: drums
     instrument: drum-loop
-    gain: 0.6
+    gain: 0.55
     commands: [
       [delay, [16,1]],
-      [repeat, 5],
+      [repeat, 9],
       [play, drum-pattern],
       [end-repeat]
     ]
   - name: orchestra
     instrument: orchestral-loop
-    gain: 0.6
+    gain: 0.55
     commands: [
       [delay, [32,4]],
-      [repeat, 7],
+      [repeat, 11],
       [play, drum-pattern],
       [end-repeat],
     ]
